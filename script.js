@@ -3,9 +3,9 @@ let movies = [];
 let currentMovieId = null; // Track movie being rated
 
 // Google Sheets configuration (loaded from json)
-const GOOGLE_SHEET_ID = "1Pd2vjaJiA773kUKoZd6nRu0Gd2e4ZAcqfSvPdT6EHXo";
-const GOOGLE_SHEET_NAME = "Watchlist";
-const API_URL = "https://script.google.com/macros/s/AKfycbzLNw-pUy4RuGZz7y0-oOCltXXr81Bh5YuZ43uaH5KwU9JCdCzrbrPcAgiSYmLvoRXj/exec";
+let GOOGLE_SHEET_ID = "abc123";
+let GOOGLE_SHEET_NAME = "Sheet1";
+let API_URL = "https://script.google.com/macros/s/abc123/exec";
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('save-rating-btn').addEventListener('click', saveRating);
     document.querySelector('.close-modal').addEventListener('click', closeModal);
     document.querySelector('.close-add-modal').addEventListener('click', closeAddModal);
+    document.getElementById('import-config-btn').addEventListener('click', triggerFileInput);
+    document.getElementById('config-file-input').addEventListener('change', handleConfigFile);
     
     // Add sort functionality to table headers
     document.querySelectorAll('th[data-sort]').forEach(header => {
@@ -311,6 +313,39 @@ function updateStats() {
         (yRatings.reduce((a, b) => a + b, 0) / yRatings.length).toFixed(1) : '0.0';
 
     document.getElementById('avg-y-rating').textContent = avgYRating;
+}
+
+// Ask for file to upload
+function triggerFileInput() {
+    document.getElementById('config-file-input').click();
+}
+
+// Handle the JSON file for Google Sheets
+function handleConfigFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const config = JSON.parse(e.target.result);
+            updateConfig(config);
+            showStatus('Configuration imported successfully!', true);
+            // Reload data with new configuration
+            loadFromGoogleSheet();
+        } catch (error) {
+            console.error('Error parsing config file:', error);
+            showStatus('Invalid configuration file', false);
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Update Google Sheets Config
+function updateConfig(config) {
+    if (config.sheetId) GOOGLE_SHEET_ID = config.sheetId;
+    if (config.sheetName) GOOGLE_SHEET_NAME = config.sheetName;
+    if (config.apiUrl) API_URL = config.apiUrl;
 }
 
 // Load data from Google Sheet
