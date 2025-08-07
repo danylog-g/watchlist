@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watchlist</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Movie <i class="fas fa-heart heart"></i> Watchlist</h1>
+            <p class="subtitle">Track movies and rate them!</p>
+            <div id="sync-status" class="status-message"></div>
+        </header>
+        
+        <div class="app-container">
+            <section class="list-section">
+                <h2><i class="fas fa-film"></i> Your Watchlist</h2>
+
+                <div class="fab" id="add-movie-btn">
+                    <i class="fas fa-plus"></i>
+                </div>
+
+                <div class="loader" id="loader"></div>
+                
+                <div class="table-container">
+                    <table id="watchlist-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="name">Title <i class="fas fa-sort"></i></th>
+                                <th data-sort="dateAdded">Date Added <i class="fas fa-sort"></i></th>
+                                <th data-sort="dateWatched">Date Watched <i class="fas fa-sort"></i></th>
+                                <th data-sort="duration">Duration (hrs) <i class="fas fa-sort"></i></th>
+                                <th data-sort="gfRating">X Rating <i class="fas fa-sort"></i></th>
+                                <th data-sort="myRating">Y Rating <i class="fas fa-sort"></i></th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="watchlist-body">
+                            <!-- Table rows will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="empty-state" class="empty-state">
+                        <i class="fas fa-film"></i>
+                        <h3>Your watchlist is empty</h3>
+                        <p>Add movies.</p>
+                    </div>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-movies">0</div>
+                        <div class="stat-label">Total Movies</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="watched-movies">0</div>
+                        <div class="stat-label">Watched</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-duration">0</div>
+                        <div class="stat-label">Time Spent</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avg-x-rating">0.0</div>
+                        <div class="stat-label">Avg X Rating</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avg-y-rating">0.0</div>
+                        <div class="stat-label">Avg Y Rating</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="modal" id="rating-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Rate Movie</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div class="modal-rating">
+                <h4 id="modal-movie-title"></h4>
+                
+                <div class="form-group">
+                    <label>Date Watched</label>
+                    <input type="date" id="date-watched" value="">
+                </div>
+                
+                <div class="duration-input">
+                    <label>Duration (hours):</label>
+                    <input type="number" id="movie-duration" min="0" max="999" value="2">
+                </div>
+                
+                <div class="form-group">
+                    <label>Y Rating</label>
+                    <div class="rating" id="modal-y-rating"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label>X Rating</label>
+                    <div class="rating" id="modal-x-rating"></div>
+                </div>
+                
+                <button id="save-rating-btn"><i class="fas fa-save"></i> Save Rating</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="add-movie-modal" id="add-movie-modal">
+        <div class="add-movie-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Movie</h3>
+                <button class="close-add-modal">&times;</button>
+            </div>
+            
+            <div class="modal-rating">
+                <div class="form-group">
+                    <label for="new-movie-name">Movie Title</label>
+                    <input type="text" id="new-movie-name" placeholder="Enter movie title">
+                </div>
+                
+                <div class="form-group">
+                    <label for="new-date-added">Date Added</label>
+                    <input type="date" id="new-date-added" value="">
+                </div>
+                
+                <button id="save-new-movie-btn"><i class="fas fa-plus"></i> Add Movie</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
