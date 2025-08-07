@@ -331,6 +331,7 @@ function handleConfigFile(event) {
             const config = JSON.parse(e.target.result);
             updateConfig(config);
             showStatus('Configuration imported successfully!', true);
+            console.log('Configuration imported successfully!');
             // Reload data with new configuration
             loadFromGoogleSheet();
         } catch (error) {
