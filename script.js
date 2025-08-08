@@ -290,8 +290,6 @@ function sortWatchlist(sortBy) {
             const dateA = a[sortBy] ? new Date(a[sortBy]) : new Date(0);
             const dateB = b[sortBy] ? new Date(b[sortBy]) : new Date(0);
             return dateB - dateA; // Newest first
-        } else if (sortBy === 'duration') {
-            return (b[sortBy] || 0) - (a[sortBy] || 0);
         } else {
             // For ratings
             return (b[sortBy] || 0) - (a[sortBy] || 0);
