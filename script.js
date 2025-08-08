@@ -591,31 +591,42 @@ function updateConfig(config) {
     API_URL = config.apiUrl;
 }
 
-// Fixed JSONP function
+// JSONP function
 function loadWithJsonp(url, callbackName) {
     return new Promise((resolve, reject) => {
-        // Create script element
         const script = document.createElement('script');
-        
-        // Add callback parameter to URL
         const separator = url.includes('?') ? '&' : '?';
-        script.src = `${url}${separator}callback=${callbackName}`;
+        
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        script.src = `${url}${separator}callback=${callbackName}&t=${timestamp}`;
+        
+        console.log('Fetching URL:', script.src);
 
-        // Create callback function
-        window[callbackName] = (data) => {
+        // Timeout handling
+        const timeout = setTimeout(() => {
+            cleanup();
+            reject(new Error('JSONP request timed out'));
+        }, 15000); // 15 seconds timeout
+
+        function cleanup() {
             delete window[callbackName];
-            document.body.removeChild(script);
+            if (script.parentNode) document.body.removeChild(script);
+            clearTimeout(timeout);
+        }
+
+        window[callbackName] = (data) => {
+            cleanup();
+            console.log('Received data for', callbackName, data);
             resolve(data);
         };
 
-        // Handle errors
         script.onerror = () => {
-            delete window[callbackName];
-            document.body.removeChild(script);
+            cleanup();
+            console.error('Script load error for URL:', script.src);
             reject(new Error('JSONP request failed'));
         };
 
-        // Add to document
         document.body.appendChild(script);
     });
 }
@@ -636,15 +647,33 @@ function fetchAll() {
     return Promise.all(['Movies', 'Shows', 'Seasons', 'Episodes'].map(n => fetchSheet(n)));
 }
 
+// Function to poppulate important shit
 function populateArrays(arr) {
     arr.forEach(({ name, data }) => {
-        window[name.toLowerCase()] = data;
+        // Properly assign to the correct array
+        if (name === 'Movies') movies = data;
+        else if (name === 'Shows') shows = data;
+        else if (name === 'Seasons') seasons = data;
+        else if (name === 'Episodes') episodes = data;
     });
 }
 
 // Load data from Google Sheet
 function init() {
-    fetchAll().then(populateArrays).then(() => renderWatchlist());
+    showLoader();
+    fetchAll()
+        .then(populateArrays)
+        .then(() => {
+            renderWatchlist();
+            updateStats();
+            hideLoader();
+            showStatus('Data loaded successfully!', true);
+        })
+        .catch(err => {
+            hideLoader();
+            showStatus('Failed to load data: ' + err.message, false);
+            console.error('Fetch error:', err);
+        });
 }
 
 // Save data to Google Sheet
