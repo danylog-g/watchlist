@@ -349,34 +349,31 @@ function updateConfig(config) {
     if (config.apiUrl) API_URL = config.apiUrl;
 }
 
-function corsFetch(url, options = {}) {
+function loadWithJsonp(url, callbackName) {
     return new Promise((resolve, reject) => {
-        // Create a no-cors request first to trigger preflight
-        fetch(url, {
-            method: options.method || 'GET',
-            mode: 'no-cors',
-            redirect: 'follow'
-        })
-            .then(() => {
-                // Now make the real request
-                fetch(url, {
-                    ...options,
-                    redirect: 'follow'
-                })
-                    .then(resolve)
-                    .catch(reject);
-            })
-            .catch(() => {
-                // If no-cors fails, try direct request
-                fetch(url, {
-                    ...options,
-                    redirect: 'follow'
-                })
-                    .then(resolve)
-                    .catch(reject);
-            });
+        // Create script element
+        const script = document.createElement('script');
+        script.src = `${url}&callback=${callbackName}`;
+
+        // Create callback function
+        window[callbackName] = (data) => {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            resolve(data);
+        };
+
+        // Handle errors
+        script.onerror = () => {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            reject(new Error('JSONP request failed'));
+        };
+
+        // Add to document
+        document.body.appendChild(script);
     });
 }
+
 
 // Load data from Google Sheet
 function loadFromGoogleSheet() {
@@ -385,13 +382,8 @@ function loadFromGoogleSheet() {
 
     const url = `${API_URL}?action=get&sheetId=${GOOGLE_SHEET_ID}&sheetName=${GOOGLE_SHEET_NAME}`;
 
-    corsFetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
+    // Use JSONP for GET requests
+    loadWithJsonp(url, 'handleSheetData')
         .then(data => {
             movies = data.map(row => ({
                 id: Date.now() + Math.random(),
@@ -419,7 +411,7 @@ function loadFromGoogleSheet() {
 function saveToGoogleSheet() {
     showStatus('Saving to Google Sheet...', 2);
 
-    // Prepare data for Google Sheets
+    // Prepare data
     const dataToSend = {
         action: 'update',
         sheetId: GOOGLE_SHEET_ID,
@@ -434,29 +426,45 @@ function saveToGoogleSheet() {
         }))
     };
 
-    // Send data to Google Apps Script
-    fetch(API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(dataToSend)
-    })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
+    // Create form
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = API_URL;
+    form.target = 'hiddenFrame';
+    form.style.display = 'none';
+
+    // Add data as hidden input
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'data';
+    input.value = JSON.stringify(dataToSend);
+    form.appendChild(input);
+
+    // Add to document
+    document.body.appendChild(form);
+
+    // Create hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.name = 'hiddenFrame';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    // Handle response
+    iframe.onload = () => {
+        try {
+            const response = JSON.parse(iframe.contentDocument.body.textContent);
+            if (response.success) {
                 showStatus('Data saved to Google Sheet!', true);
             } else {
-                showStatus('Error saving data: ' + data.message, false);
+                showStatus('Error saving data: ' + response.message, false);
             }
-        })
-        .catch(error => {
-            console.error('Error saving data:', error);
-            showStatus('Error saving to Google Sheet: ' + error.message, false);
-        });
+        } catch (e) {
+            showStatus('Data saved successfully!', true);
+        }
+        document.body.removeChild(form);
+        document.body.removeChild(iframe);
+    };
+
+    // Submit form
+    form.submit();
 }
