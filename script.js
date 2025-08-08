@@ -301,30 +301,36 @@ function sortWatchlist(sortBy) {
 // Helper function to format date as DD-MM-YYYY
 function formatDate(dateString) {
     if (!dateString) return '';
-    
-    // Try to parse DD-MM-YYYY or YYYY-MM-DD or similar
+
+    // Detect if input is a Date object (e.g., from Google Sheet)
+    if (typeof dateString === 'object' && dateString instanceof Date) {
+        const day = String(dateString.getDate()).padStart(2, '0');
+        const month = String(dateString.getMonth() + 1).padStart(2, '0');
+        const year = dateString.getFullYear();
+        return `${day}-${month}-${year}`;
+    }
+
+    // Assume it's a string (e.g., "07/08/2025" or "2025-08-07")
     const parts = dateString.split(/[-/]/).map(Number);
+
     if (parts.length !== 3) return '';
 
     let day, month, year;
 
-    if (parts[0] > 31) {
-        // Probably YYYY-MM-DD
+    // Handle YYYY-MM-DD
+    if (parts[0] > 999) {
         [year, month, day] = parts;
-    } else if (parts[2] > 31) {
-        // Probably DD-MM-YYYY
-        [day, month, year] = parts;
-    } else {
-        // Ambiguous: fallback to DD-MM-YYYY
+    }
+    // Handle MM/DD/YYYY (USA format)
+    else if (parts[2] > 999) {
+        [month, day, year] = parts;
+    }
+    // Assume DD-MM-YYYY
+    else {
         [day, month, year] = parts;
     }
 
-    const d = new Date(year, month - 1, day);
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-
-    return `${dd}-${mm}-${yyyy}`;
+    return `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}-${year}`;
 }
 
 // Get today's date in local timezone
