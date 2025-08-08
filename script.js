@@ -102,6 +102,12 @@ function addMovie() {
     updateStats();
     saveToGoogleSheet();
     closeAddModal();
+
+    // Clear Fields
+    document.getElementById('new-movie-name').value = "";
+    document.getElementById('new-date-added').value = "";
+    document.getElementById('movie-duration').value = "";
+    document.getElementById('new-media-type').value = "";
 }
 
 // Open rating modal
