@@ -8,10 +8,10 @@ let GOOGLE_SHEET_NAME = "Sheet1";
 let API_URL = "https://script.google.com/macros/s/abc123/exec";
 
 // Initialize application
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Set today's date as default for date added
     const today = new Date().toISOString().split('T')[0];
-    
+
     // Set up event listeners
     document.getElementById('add-movie-btn').addEventListener('click', openAddMovieModal);
     document.getElementById('save-new-movie-btn').addEventListener('click', addMovie);
@@ -20,14 +20,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('.close-add-modal').addEventListener('click', closeAddModal);
     document.getElementById('import-config-btn').addEventListener('click', triggerFileInput);
     document.getElementById('config-file-input').addEventListener('change', handleConfigFile);
-    
+
     // Add sort functionality to table headers
     document.querySelectorAll('th[data-sort]').forEach(header => {
         header.addEventListener('click', () => {
             sortWatchlist(header.dataset.sort);
         });
     });
-    
+
     // Load data from Google Sheet
     loadFromGoogleSheet();
 });
@@ -326,7 +326,7 @@ function handleConfigFile(event) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         try {
             const config = JSON.parse(e.target.result);
             updateConfig(config);
@@ -349,45 +349,76 @@ function updateConfig(config) {
     if (config.apiUrl) API_URL = config.apiUrl;
 }
 
+function corsFetch(url, options = {}) {
+    return new Promise((resolve, reject) => {
+        // Create a no-cors request first to trigger preflight
+        fetch(url, {
+            method: options.method || 'GET',
+            mode: 'no-cors',
+            redirect: 'follow'
+        })
+            .then(() => {
+                // Now make the real request
+                fetch(url, {
+                    ...options,
+                    redirect: 'follow'
+                })
+                    .then(resolve)
+                    .catch(reject);
+            })
+            .catch(() => {
+                // If no-cors fails, try direct request
+                fetch(url, {
+                    ...options,
+                    redirect: 'follow'
+                })
+                    .then(resolve)
+                    .catch(reject);
+            });
+    });
+}
+
 // Load data from Google Sheet
 function loadFromGoogleSheet() {
     showLoader();
     showStatus('Loading data from Google Sheet...', 2);
-    
-    fetch(`${API_URL}?action=get&sheetId=${GOOGLE_SHEET_ID}&sheetName=${GOOGLE_SHEET_NAME}`)
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        movies = data.map(row => ({
-            id: Date.now() + Math.random(), // Generate unique ID
-            name: row.Title || '',
-            dateAdded: row['Date Added'] || '',
-            dateWatched: row['Date Watched'] || null,
-            duration: parseInt(row.Duration) || 0,
-            xRating: parseInt(row['X Rating']) || 0,
-            yRating: parseInt(row['Y Rating']) || 0
-        }));
-        
-        renderWatchlist();
-        updateStats();
-        hideLoader();
-        showStatus('Data loaded successfully!', true);
-    })
-    .catch(error => {
-        console.error('Error loading data:', error);
-        hideLoader();
-        showStatus('Error loading data: ' + error.message, false);
-    });
+
+    const url = `${API_URL}?action=get&sheetId=${GOOGLE_SHEET_ID}&sheetName=${GOOGLE_SHEET_NAME}`;
+
+    corsFetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            movies = data.map(row => ({
+                id: Date.now() + Math.random(),
+                name: row.Title || '',
+                dateAdded: row['Date Added'] || '',
+                dateWatched: row['Date Watched'] || null,
+                duration: parseInt(row.Duration) || 0,
+                xRating: parseInt(row['X Rating']) || 0,
+                yRating: parseInt(row['Y Rating']) || 0
+            }));
+
+            renderWatchlist();
+            updateStats();
+            hideLoader();
+            showStatus('Data loaded successfully!', true);
+        })
+        .catch(error => {
+            console.error('Error loading data:', error);
+            hideLoader();
+            showStatus('Error loading data: ' + error.message, false);
+        });
 }
 
 // Save data to Google Sheet
 function saveToGoogleSheet() {
     showStatus('Saving to Google Sheet...', 2);
-    
+
     // Prepare data for Google Sheets
     const dataToSend = {
         action: 'update',
@@ -402,7 +433,7 @@ function saveToGoogleSheet() {
             'Y Rating': movie.yRating || ''
         }))
     };
-    
+
     // Send data to Google Apps Script
     fetch(API_URL, {
         method: 'POST',
@@ -411,21 +442,21 @@ function saveToGoogleSheet() {
         },
         body: JSON.stringify(dataToSend)
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            showStatus('Data saved to Google Sheet!', true);
-        } else {
-            showStatus('Error saving data: ' + data.message, false);
-        }
-    })
-    .catch(error => {
-        console.error('Error saving data:', error);
-        showStatus('Error saving to Google Sheet: ' + error.message, false);
-    });
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showStatus('Data saved to Google Sheet!', true);
+            } else {
+                showStatus('Error saving data: ' + data.message, false);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving data:', error);
+            showStatus('Error saving to Google Sheet: ' + error.message, false);
+        });
 }
