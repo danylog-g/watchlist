@@ -299,47 +299,41 @@ function renderWatchlist() {
     const tbody = document.getElementById('watchlist-body');
     const emptyState = document.getElementById('empty-state');
 
-    // Combine movies and shows
+    // Combine movies and shows into a single array
     const combined = [
         ...movies.map(m => ({ ...m, kind: 'Movie' })),
-        ...shows.map(s => ({ ...s, kind: 'Show' })),
-    ].map(item => ({
-        ...item,
-        kind: item.type  // Use existing type property
-    }));
+        ...shows.map(s => ({ ...s, kind: 'Show' }))
+    ];
 
-    // Nothing... nothing to see or do
-    if (combined.movies.length === 0 && combined.shows.length === 0) {
+    // Check if combined array is empty
+    if (combined.length === 0) {
         tbody.innerHTML = '';
         emptyState.style.display = 'block';
         return;
     }
 
-    // Get Filter Terms
-    const term = document
-        .getElementById('search-input')
-        .value
-        .trim()
-        .toLowerCase();
+    // Get filter term
+    const term = document.getElementById('search-input').value.trim().toLowerCase();
 
-    // Handle Filtering
+    // Filter items
     const filtered = combined.filter(item => {
-        if (!term) return true; // Display every movie / show 
-        // Fields to Search
-        const inTitle = item.name.toLowerCase().includes(term);
-        const inDirector = (item.director || '').toLowerCase().includes(term);
-        const inType = (item.type || '').toLowerCase().includes(term);
-        const inGenre = item.genre.join(' ').toLowerCase().includes(term);
-        return inTitle || inDirector || inType || inGenre;
+        if (!term) return true;
+        return (
+            item.name.toLowerCase().includes(term) ||
+            (item.director || '').toLowerCase().includes(term) ||
+            (item.type || '').toLowerCase().includes(term) ||
+            (item.genre || []).join(' ').toLowerCase().includes(term)
+        );
     });
 
-    // No movies after Filter applied
+    // Handle no results after filtering
     if (filtered.length === 0) {
         tbody.innerHTML = '';
         emptyState.style.display = 'block';
         return;
     }
 
+    // Hide empty state and render results
     emptyState.style.display = 'none';
     tbody.innerHTML = '';
 
@@ -351,9 +345,7 @@ function renderWatchlist() {
         const dateWatched = item.dateWatched ? formatDate(item.dateWatched) : 'Not watched';
 
         // Use item.watchDate for movies vs shows
-        const watchDate = item.kind === 'Movie' 
-            ? item.dateWatched 
-            : item.dateFinished;
+        const watchDate = getWatchDate(item);
 
         // Create rating stars
         const xRatingStars = item.xRating > 0 ? createRatingStars(item.xRating) : '-';
@@ -651,7 +643,13 @@ function fetchSheet(name) {
 }
 
 function fetchAll() {
-    return Promise.all(['Movies', 'Shows', 'Seasons', 'Episodes'].map(n => fetchSheet(n)));
+    return Promise.allSettled(
+        ['Movies', 'Shows', 'Seasons', 'Episodes'].map(n => fetchSheet(n))
+    ).then(results => {
+        return results.map(result => 
+            result.status === 'fulfilled' ? result.value : null
+        ).filter(Boolean);
+    });
 }
 
 // Function to poppulate important shit
