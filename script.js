@@ -411,7 +411,6 @@ function loadFromGoogleSheet() {
 function saveToGoogleSheet() {
     showStatus('Saving to Google Sheet...', 2);
 
-    // Prepare data
     const dataToSend = {
         action: 'update',
         sheetId: GOOGLE_SHEET_ID,
@@ -426,45 +425,18 @@ function saveToGoogleSheet() {
         }))
     };
 
-    // Create form
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = API_URL;
-    form.target = 'hiddenFrame';
-    form.style.display = 'none';
-
-    // Add data as hidden input
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'data';
-    input.value = JSON.stringify(dataToSend);
-    form.appendChild(input);
-
-    // Add to document
-    document.body.appendChild(form);
-
-    // Create hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.name = 'hiddenFrame';
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-
-    // Handle response
-    iframe.onload = () => {
-        try {
-            const response = JSON.parse(iframe.contentDocument.body.textContent);
-            if (response.success) {
-                showStatus('Data saved to Google Sheet!', true);
-            } else {
-                showStatus('Error saving data: ' + response.message, false);
-            }
-        } catch (e) {
-            showStatus('Data saved successfully!', true);
-        }
-        document.body.removeChild(form);
-        document.body.removeChild(iframe);
-    };
-
-    // Submit form
-    form.submit();
+    // Use fetch with no-cors mode
+    fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        redirect: 'follow',
+        body: JSON.stringify(dataToSend)
+    })
+        .then(() => {
+            showStatus('Data saved to Google Sheet!', true);
+        })
+        .catch(error => {
+            console.error('Error saving data:', error);
+            showStatus('Error saving to Google Sheet', false);
+        });
 }
