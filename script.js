@@ -243,7 +243,6 @@ function renderWatchlist() {
                     <td>${movie.genre.join(', ') || '-'}</td>
                     <td>${dateAdded}</td>
                     <td>${dateWatched}</td>
-                    <td>${movie.duration > 0 ? movie.duration : '-'}</td>
                     <td>${xRatingStars}</td>
                     <td>${yRatingStars}</td>
                     <td></td>
