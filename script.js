@@ -307,11 +307,11 @@ function parseDate(dateString) {
     if (dateString instanceof Date) return dateString;
 
     // 1) ISO with time: "2025-08-07T04:00:00.000Z"
-    let m = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+    let m = /^(\d{4})-(\d{2})-(\d{2})T/.exec(s);
     if (m) {
-        const [_, y, M, d] = m.map(Number);
+        const [_, y, M, d] = m;
         // Use UTC so no timezone shift
-        return new Date(Date.UTC(y, M - 1, d));
+        return new Date(Date.UTC(+y, +M - 1, +d));
     }
 
     // 2) Pure ISO date: "2025-08-07"
@@ -368,21 +368,21 @@ function updateStats() {
     const watched = movies.filter(m => m.dateWatched).length;
     document.getElementById('watched-movies').textContent = watched;
 
-    // Calculate total duration
-    const totalDuration = movies.reduce((sum, movie) => sum + (movie.duration || 0), 0);
+    // Calculate total duration only for watched movies
+    const totalDuration = movies
+      .filter(m => m.dateWatched) // only watched ones
+      .reduce((sum, movie) => sum + (movie.duration || 0), 0);
     document.getElementById('total-duration').textContent = totalDuration;
 
     // Calculate average ratings
     const xRatings = movies.filter(m => m.xRating > 0).map(m => m.xRating);
     const avgXRating = xRatings.length ?
         (xRatings.reduce((a, b) => a + b, 0) / xRatings.length).toFixed(1) : '0.0';
-
     document.getElementById('avg-x-rating').textContent = avgXRating;
 
     const yRatings = movies.filter(m => m.yRating > 0).map(m => m.yRating);
     const avgYRating = yRatings.length ?
         (yRatings.reduce((a, b) => a + b, 0) / yRatings.length).toFixed(1) : '0.0';
-
     document.getElementById('avg-y-rating').textContent = avgYRating;
 }
 
@@ -461,8 +461,8 @@ function loadFromGoogleSheet() {
                 year: parseInt(row.Year) || '',
                 director: row.Director || '',
                 genre: row.Genre ? row.Genre.split(',').map(g => g.trim()).filter(g => g) : [],
-                dateAdded: row['Date Added'] || '',
-                dateWatched: row['Date Watched'] || null,
+                dateAdded: formatDate(row['Date Added']),
+                dateWatched: row['Date Watched'] ? formatDate(row['Date Watched']) : null,
                 duration: parseInt(row.Duration) || 0,
                 xRating: parseInt(row['X Rating']) || 0,
                 yRating: parseInt(row['Y Rating']) || 0
