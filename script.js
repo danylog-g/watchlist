@@ -307,7 +307,7 @@ function parseDate(dateString) {
     if (dateString instanceof Date) return dateString;
 
     // 1) ISO with time: "2025-08-07T04:00:00.000Z"
-    let m = /^(\d{4})-(\d{2})-(\d{2})T/.exec(s);
+    let m = /^(\d{4})-(\d{2})-(\d{2})T/.exec(dateString);
     if (m) {
         const [_, y, M, d] = m;
         // Use UTC so no timezone shift
