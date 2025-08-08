@@ -301,22 +301,40 @@ function sortWatchlist(sortBy) {
 // Helper function to format date as DD-MM-YYYY
 function formatDate(dateString) {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
+    
+    // Try to parse DD-MM-YYYY or YYYY-MM-DD or similar
+    const parts = dateString.split(/[-/]/).map(Number);
+    if (parts.length !== 3) return '';
+
+    let day, month, year;
+
+    if (parts[0] > 31) {
+        // Probably YYYY-MM-DD
+        [year, month, day] = parts;
+    } else if (parts[2] > 31) {
+        // Probably DD-MM-YYYY
+        [day, month, year] = parts;
+    } else {
+        // Ambiguous: fallback to DD-MM-YYYY
+        [day, month, year] = parts;
+    }
+
+    const d = new Date(year, month - 1, day);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+
+    return `${dd}-${mm}-${yyyy}`;
 }
 
-// Get today's date in local timezone (YYYY-MM-DD format)
+// Get today's date in local timezone
 function getTodayDate() {
     const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
 }
-
 // Update statistics
 function updateStats() {
     document.getElementById('total-movies').textContent = movies.length;
