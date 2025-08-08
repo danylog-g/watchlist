@@ -597,17 +597,17 @@ function loadWithJsonp(url, callbackName) {
         const script = document.createElement('script');
         const separator = url.includes('?') ? '&' : '?';
         
-        // Add timestamp to prevent caching
-        const timestamp = new Date().getTime();
-        script.src = `${url}${separator}callback=${callbackName}&t=${timestamp}`;
+        // Use the new deployment URL here
+        const fullUrl = `${url}${separator}sheetId=${GOOGLE_SHEET_ID}&sheetName=${sheetName}&callback=${callbackName}`;
         
-        console.log('Fetching URL:', script.src);
+        console.log('Fetching URL:', fullUrl);
+        script.src = fullUrl;
 
         // Timeout handling
         const timeout = setTimeout(() => {
             cleanup();
             reject(new Error('JSONP request timed out'));
-        }, 15000); // 15 seconds timeout
+        }, 15000);
 
         function cleanup() {
             delete window[callbackName];
