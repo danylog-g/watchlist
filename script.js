@@ -77,6 +77,9 @@ function addMovie() {
     const movie = {
         id: Date.now(),
         name: movieName,
+        year: parseInt(document.getElementById('new-movie-year').value) || '',
+        director: document.getElementById('new-movie-director').value.trim() || '',
+        genre: document.getElementById('new-movie-genre').value.split(',').map(g => g.trim()).filter(g => g) || [],
         dateAdded: dateAddedInput.value,
         dateWatched: null,
         duration: 0, // Duration in hours
@@ -235,6 +238,9 @@ function renderWatchlist() {
         // Build row
         row.innerHTML = `
                     <td>${movie.name}</td>
+                    <td>${movie.year || '-'}</td>
+                    <td>${movie.director || '-'}</td>
+                    <td>${movie.genre.join(', ') || '-'}</td>
                     <td>${dateAdded}</td>
                     <td>${dateWatched}</td>
                     <td>${movie.duration > 0 ? movie.duration : '-'}</td>
@@ -271,6 +277,15 @@ function sortWatchlist(sortBy) {
         // Handle different data types
         if (sortBy === 'name') {
             return a.name.localeCompare(b.name);
+        } else if (sortBy === 'year') {
+            return (b.year || 0) - (a.year || 0);
+        } else if (sortBy === 'director') {
+            return (a.director || '').localeCompare(b.director || '');
+        } else if (sortBy === 'genre') {
+            // Compare first genre
+            const genreA = a.genre[0] || '';
+            const genreB = b.genre[0] || '';
+            return genreA.localeCompare(genreB);
         } else if (sortBy === 'dateAdded' || sortBy === 'dateWatched') {
             const dateA = a[sortBy] ? new Date(a[sortBy]) : new Date(0);
             const dateB = b[sortBy] ? new Date(b[sortBy]) : new Date(0);
@@ -403,6 +418,9 @@ function loadFromGoogleSheet() {
             movies = data.map(row => ({
                 id: Date.now() + Math.random(),
                 name: row.Title || '',
+                year: parseInt(row.Year) || '',
+                director: row.Director || '',
+                genre: row.Genre ? row.Genre.split(',').map(g => g.trim()).filter(g => g) : [],
                 dateAdded: formatDate(row['Date Added']) || '',
                 dateWatched: row['Date Watched'] ? formatDate(row['Date Watched']) : null,
                 duration: parseInt(row.Duration) || 0,
@@ -432,6 +450,9 @@ function saveToGoogleSheet() {
         sheetName: GOOGLE_SHEET_NAME,
         movies: movies.map(movie => ({
             Title: movie.name,
+            Year: movie.year || '',
+            Director: movie.director || '',
+            Genre: movie.genre.join(', ') || '',
             'Date Added': movie.dateAdded,
             'Date Watched': movie.dateWatched || '',
             Duration: movie.duration || '',
