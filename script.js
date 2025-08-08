@@ -27,6 +27,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Load data from Google Sheet
     loadFromGoogleSheet();
+
+    // Search / Filter
+    const searchInput = document.getElementById('search-input');
+    searchInput.addEventListener('input', renderWatchlist);
 });
 
 // Show loading indicator
@@ -76,7 +80,7 @@ function addMovie() {
         return;
     }
 
-    const Duration = parseInt(durationInput.value);
+    const Duration = parseFloat(durationInput.value);
 
     const movie = {
         id: Date.now(),
@@ -197,10 +201,35 @@ function renderWatchlist() {
         return;
     }
 
+    // Get Filter Terms
+    const term = document
+        .getElementById('search-input')
+        .value
+        .trim()
+        .toLowerCase();
+
+    // Handle Filtering
+    const filtered = movies.filter(m => {
+        if (!term) return true; // Display every movie / show 
+        // Fields to Search
+        const inTitle    = m.name.toLowerCase().includes(term);
+        const inDirector = (m.director || '').toLowerCase().includes(term);
+        const inType     = (m.type     || '').toLowerCase().includes(term);
+        const inGenre    = m.genre.join(' ').toLowerCase().includes(term);
+        return inTitle || inDirector || inType || inGenre;
+    });
+
+    // No movies after Filter applied
+    if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+    }
+
     emptyState.style.display = 'none';
     tbody.innerHTML = '';
 
-    movies.forEach(movie => {
+    filtered.forEach(movie => {
         const row = document.createElement('tr');
 
         // Format dates
@@ -243,6 +272,7 @@ function renderWatchlist() {
                     <td>${movie.name}</td>
                     <td>${movie.year || '-'}</td>
                     <td>${movie.director || '-'}</td>
+                    <td>${movie.type || '-'}</td>
                     <td>${movie.genre.join(', ') || '-'}</td>
                     <td>${dateAdded}</td>
                     <td>${dateWatched}</td>
@@ -466,12 +496,12 @@ function loadFromGoogleSheet() {
                 genre: row.Genre ? row.Genre.split(',').map(g => g.trim()).filter(g => g) : [],
                 dateAdded: formatDate(row['Date Added']),
                 dateWatched: row['Date Watched'] ? formatDate(row['Date Watched']) : null,
-                duration: parseInt(row.Duration) || 0,
+                duration: parseFloat(row.Duration) || 0,
                 xRating: parseInt(row['X Rating']) || 0,
                 yRating: parseInt(row['Y Rating']) || 0
             }));
 
-            renderWatchlist();
+            sortWatchlist("name");
             updateStats();
             hideLoader();
             showStatus('Data loaded successfully!', true);
