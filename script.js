@@ -201,7 +201,7 @@ function renderWatchlist() {
         const row = document.createElement('tr');
 
         // Format dates
-        const dateAdded = formatDate(movie.dateAdded);
+        const dateAdded = movie.dateAdded ? formatDate(movie.dateAdded) : '';
         const dateWatched = movie.dateWatched ? formatDate(movie.dateWatched) : 'Not watched';
 
         // Create rating stars
@@ -298,49 +298,48 @@ function sortWatchlist(sortBy) {
     renderWatchlist();
 }
 
-// Helper function to format date as DD-MM-YYYY
+// Helper function to parse dates correctly
+function parseDate(dateString) {
+    if (!dateString) return null;
+    
+    // Handle both yyyy-mm-dd and dd-mm-yyyy formats
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        // ISO format (yyyy-mm-dd)
+        const [year, month, day] = dateString.split('-');
+        return new Date(day, month - 1, year);
+    } else if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+        // dd-mm-yyyy format
+        const [day, month, year] = dateString.split('-');
+        return new Date(year, month - 1, day);
+    }
+    
+    return new Date(dateString);
+}
+
+// Handle timezones
 function formatDate(dateString) {
     if (!dateString) return '';
-
-    // Detect if input is a Date object (e.g., from Google Sheet)
-    if (typeof dateString === 'object' && dateString instanceof Date) {
-        const day = String(dateString.getDate()).padStart(2, '0');
-        const month = String(dateString.getMonth() + 1).padStart(2, '0');
-        const year = dateString.getFullYear();
-        return `${day}-${month}-${year}`;
-    }
-
-    // Assume it's a string (e.g., "07/08/2025" or "2025-08-07")
-    const parts = dateString.split(/[-/]/).map(Number);
-
-    if (parts.length !== 3) return '';
-
-    let day, month, year;
-
-    // Handle YYYY-MM-DD
-    if (parts[0] > 999) {
-        [year, month, day] = parts;
-    }
-    // Handle MM/DD/YYYY (USA format)
-    else if (parts[2] > 999) {
-        [month, day, year] = parts;
-    }
-    // Assume DD-MM-YYYY
-    else {
-        [day, month, year] = parts;
-    }
-
-    return `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}-${year}`;
+    
+    const date = parseDate(dateString);
+    if (isNaN(date)) return dateString; // Fallback to original if invalid
+    
+    // Use UTC methods to avoid timezone shifts
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    
+    return `${day}-${month}-${year}`;
 }
 
-// Get today's date in local timezone
+// Return in dd-mm-yyyy format
 function getTodayDate() {
     const today = new Date();
-    const dd = String(today.getDate()).padStart(2, '0');
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const yyyy = today.getFullYear();
-    return `${dd}-${mm}-${yyyy}`;
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    return `${day}-${month}-${year}`;
 }
+
 // Update statistics
 function updateStats() {
     document.getElementById('total-movies').textContent = movies.length;
@@ -425,7 +424,6 @@ function loadWithJsonp(url, callbackName) {
     });
 }
 
-
 // Load data from Google Sheet
 function loadFromGoogleSheet() {
     showLoader();
@@ -442,8 +440,8 @@ function loadFromGoogleSheet() {
                 year: parseInt(row.Year) || '',
                 director: row.Director || '',
                 genre: row.Genre ? row.Genre.split(',').map(g => g.trim()).filter(g => g) : [],
-                dateAdded: formatDate(row['Date Added']) || '',
-                dateWatched: row['Date Watched'] ? formatDate(row['Date Watched']) : null,
+                dateAdded: row['Date Added'] || '',
+                dateWatched: row['Date Watched'] || null,
                 duration: parseInt(row.Duration) || 0,
                 xRating: parseInt(row['X Rating']) || 0,
                 yRating: parseInt(row['Y Rating']) || 0
