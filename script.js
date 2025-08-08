@@ -52,7 +52,7 @@ function showStatus(message, isSuccess) {
 
 // Open add movie modal
 function openAddMovieModal() {
-    document.getElementById('new-date-added').value = getTodayDate();
+    document.getElementById('new-date-added').value = getTodayDate("yyyy-mm-dd");
     document.getElementById('new-movie-name').value = '';
     document.getElementById('add-movie-modal').style.display = 'flex';
 }
@@ -66,6 +66,7 @@ function closeAddModal() {
 function addMovie() {
     const nameInput = document.getElementById('new-movie-name');
     const dateAddedInput = document.getElementById('new-date-added');
+    const durationInput = document.getElementById('movie-duration');
 
     const movieName = nameInput.value.trim();
 
@@ -73,6 +74,8 @@ function addMovie() {
         alert('Please enter a movie title');
         return;
     }
+
+    const Duration = parseInt(durationInput.value);
 
     const movie = {
         id: Date.now(),
@@ -82,7 +85,7 @@ function addMovie() {
         genre: document.getElementById('new-movie-genre').value.split(',').map(g => g.trim()).filter(g => g) || [],
         dateAdded: formatDate(dateAddedInput.value),
         dateWatched: null,
-        duration: 0, // Duration in hours
+        duration: Duration, // Duration in hours
         xRating: 0, // Will be set when watched
         yRating: 0  // Will be set when watched
     };
@@ -102,8 +105,7 @@ function openRatingModal(id) {
 
     currentMovieId = id;
     document.getElementById('modal-movie-title').textContent = movie.name;
-    document.getElementById('new-date-added').value = getTodayDate();
-    document.getElementById('movie-duration').value = movie.duration > 0 ? movie.duration : 2;
+    document.getElementById('new-date-added').value = getTodayDate("yyyy-mm-dd");
 
     // Initialize rating stars
     initRatingStars('modal-y-rating', movie.yRating);
@@ -126,7 +128,6 @@ function saveRating() {
     const movie = movies.find(m => m.id === currentMovieId);
     if (movie) {
         movie.dateWatched = document.getElementById('date-watched').value;
-        movie.duration = parseInt(document.getElementById('movie-duration').value);
         movie.yRating = getRating('modal-y-rating');
         movie.xRating = getRating('modal-x-rating');
 
@@ -348,12 +349,16 @@ function formatDate(dateString) {
 
 
 // Return in dd-mm-yyyy format
-function getTodayDate() {
+function getTodayDate(mode) {
     const today = new Date();
     const day = String(today.getDate()).padStart(2, '0');
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const year = today.getFullYear();
-    return `${day}-${month}-${year}`;
+
+    switch (mode) {
+        case "dd-mm-yyyy": return `${day}-${month}-${year}`;
+        case "yyyy-mm-dd": return `${year}-${month}-${day}`;
+    }
 }
 
 // Update statistics
