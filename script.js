@@ -95,7 +95,7 @@ function openAddRecordModal() {
         document.getElementById('tEpisodes-field').style.display = 'flex';
         document.getElementById('show-field').style.display = 'none';
         document.getElementById('season-num-field').style.display = 'none';
-        document.getElementById('season-num-field').style.display = 'none';
+        document.getElementById('episode-num-field').style.display = 'none';
         document.getElementById('title-field').style.display = 'flex';
         document.getElementById('genre-field').style.display = 'flex';
         document.getElementById('director-field').style.display = 'flex';
@@ -134,7 +134,8 @@ function addRecord() {
     const nameInput = document.getElementById('new-name');
     const dateAddedInput = document.getElementById('new-date-added');
     const durationInput = document.getElementById('new-duration');
-    const typeInput = document.getElementById('new-media-type');
+    const type = document.getElementById('new-media-type').value;
+    let record = null;
 
     const title = nameInput.value.trim();
 
@@ -145,26 +146,44 @@ function addRecord() {
 
     const Year = document.getElementById('new-year').value;
     const Director = document.getElementById('new-director').value.split(',').map(d => d.trim()).filter(d => d);
-    const Type = typeInput.value;
     const Genre = document.getElementById('new-genre').value.split(',').map(g => g.trim()).filter(g => g);
     const Duration = parseFloat(durationInput.value);
 
-    const record = {
-        id: Date.now(),
-        name: title,
-        year: Year || "",
-        director: Director || [""],
-        type: Type || '',
-        genre: Genre || [],
-        dateAdded: formatDate(dateAddedInput.value),
-        dateWatched: null,
-        duration: Duration, // Duration in hours
-        xRating: 0, // Will be set when watched
-        yRating: 0  // Will be set when watched
-    };
-
-    // Add to local array and save to Google Sheet
-    movies.push(record);
+    switch(type) {
+        case 'Movie':
+            record = {
+                // Movie-specific fields
+                id: Date.now(),
+                name: title,
+                year: Year || "",
+                director: Director || [""],
+                type: type || '',
+                genre: Genre || [],
+                dateAdded: formatDate(dateAddedInput.value),
+                dateWatched: null,
+                duration: Duration, // Duration in hours
+                xRating: 0, // Will be set when watched
+                yRating: 0  // Will be set when watched
+            };
+            movies.push(record);
+            break;
+        case 'Show':
+            record = {
+                // Show-specific fields
+                id: Date.now(),
+                name: title,
+                year: Year || "",
+                director: Director || [""],
+                type: type || '',
+                genre: Genre || [],
+                dateAdded: formatDate(dateAddedInput.value),
+                dateFinished: null,  // Instead of dateWatched
+                tSeasons: document.getElementById('tSeasons-field').value,
+                tEpisodes: document.getElementById('tEpisodes-field').value,
+            };
+            shows.push(record);
+            break;
+    }
 
     persistRecords([record])
         .then(() => {
@@ -280,10 +299,14 @@ function renderWatchlist() {
     const tbody = document.getElementById('watchlist-body');
     const emptyState = document.getElementById('empty-state');
 
+    // Combine movies and shows
     const combined = [
         ...movies.map(m => ({ ...m, kind: 'Movie' })),
         ...shows.map(s => ({ ...s, kind: 'Show' })),
-    ];
+    ].map(item => ({
+        ...item,
+        kind: item.type  // Use existing type property
+    }));
 
     // Nothing... nothing to see or do
     if (combined.movies.length === 0 && combined.shows.length === 0) {
@@ -300,13 +323,13 @@ function renderWatchlist() {
         .toLowerCase();
 
     // Handle Filtering
-    const filtered = movies.filter(m => {
+    const filtered = combined.filter(item => {
         if (!term) return true; // Display every movie / show 
         // Fields to Search
-        const inTitle = m.name.toLowerCase().includes(term);
-        const inDirector = (m.director || '').toLowerCase().includes(term);
-        const inType = (m.type || '').toLowerCase().includes(term);
-        const inGenre = m.genre.join(' ').toLowerCase().includes(term);
+        const inTitle = item.name.toLowerCase().includes(term);
+        const inDirector = (item.director || '').toLowerCase().includes(term);
+        const inType = (item.type || '').toLowerCase().includes(term);
+        const inGenre = item.genre.join(' ').toLowerCase().includes(term);
         return inTitle || inDirector || inType || inGenre;
     });
 
@@ -320,34 +343,39 @@ function renderWatchlist() {
     emptyState.style.display = 'none';
     tbody.innerHTML = '';
 
-    filtered.forEach(movie => {
+    filtered.forEach(item => {
         const row = document.createElement('tr');
 
         // Format dates
-        const dateAdded = movie.dateAdded ? formatDate(movie.dateAdded) : '';
-        const dateWatched = movie.dateWatched ? formatDate(movie.dateWatched) : 'Not watched';
+        const dateAdded = item.dateAdded ? formatDate(item.dateAdded) : '';
+        const dateWatched = item.dateWatched ? formatDate(item.dateWatched) : 'Not watched';
+
+        // Use item.watchDate for movies vs shows
+        const watchDate = item.kind === 'Movie' 
+            ? item.dateWatched 
+            : item.dateFinished;
 
         // Create rating stars
-        const xRatingStars = movie.xRating > 0 ? createRatingStars(movie.xRating) : '-';
-        const yRatingStars = movie.yRating > 0 ? createRatingStars(movie.yRating) : '-';
+        const xRatingStars = item.xRating > 0 ? createRatingStars(item.xRating) : '-';
+        const yRatingStars = item.yRating > 0 ? createRatingStars(item.yRating) : '-';
 
         // Create action buttons
         const actions = document.createElement('div');
         actions.className = 'actions';
 
-        if (!movie.dateWatched) {
+        if (!item.dateWatched) {
             const watchBtn = document.createElement('button');
             watchBtn.className = 'action-btn';
             watchBtn.innerHTML = '<i class="fas fa-check"></i> Rate';
             watchBtn.title = 'Mark as watched and rate';
-            watchBtn.onclick = () => openRatingModal(movie.id);
+            watchBtn.onclick = () => openRatingModal(item.id);
             actions.appendChild(watchBtn);
         } else {
             const editBtn = document.createElement('button');
             editBtn.className = 'action-btn';
             editBtn.innerHTML = '<i class="fas fa-edit"></i>';
             editBtn.title = 'Edit rating';
-            editBtn.onclick = () => openRatingModal(movie.id);
+            editBtn.onclick = () => openRatingModal(item.id);
             actions.appendChild(editBtn);
         }
 
@@ -355,16 +383,16 @@ function renderWatchlist() {
         removeBtn.className = 'action-btn btn-secondary';
         removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
         removeBtn.title = 'Remove movie';
-        removeBtn.onclick = () => removeRecord(movie.id);
+        removeBtn.onclick = () => removeRecord(item.id);
         actions.appendChild(removeBtn);
 
         // Build row
         row.innerHTML = `
-                    <td>${movie.name}</td>
-                    <td>${movie.year || '-'}</td>
-                    <td>${movie.director || '-'}</td>
-                    <td>${movie.type || '-'}</td>
-                    <td>${movie.genre.join(', ') || '-'}</td>
+                    <td>${item.name}</td>
+                    <td>${item.year || '-'}</td>
+                    <td>${item.director || '-'}</td>
+                    <td>${item.type || '-'}</td>
+                    <td>${item.genre.join(', ') || '-'}</td>
                     <td>${dateAdded}</td>
                     <td>${dateWatched}</td>
                     <td>${xRatingStars}</td>
@@ -518,6 +546,16 @@ function updateStats() {
     const avgYRating = yRatings.length ?
         (yRatings.reduce((a, b) => a + b, 0) / yRatings.length).toFixed(1) : '0.0';
     document.getElementById('avg-y-rating').textContent = avgYRating;
+
+    // Other Stuff
+    const totalMovies = movies.length;
+    const totalShows = shows.length;
+    const watchedMovies = movies.filter(m => m.dateWatched).length;
+    const watchedShows = shows.filter(s => s.dateFinished).length;
+    document.getElementById('total-movies').textContent = totalMovies;
+    document.getElementById('total-shows').textContent = totalShows;
+    document.getElementById('watched-movies').textContent = watchedMovies;
+    document.getElementById('watched-shows').textContent = watchedShows;
 }
 
 // Ask for file to upload
@@ -553,11 +591,15 @@ function updateConfig(config) {
     API_URL = config.apiUrl;
 }
 
+// Fixed JSONP function
 function loadWithJsonp(url, callbackName) {
     return new Promise((resolve, reject) => {
         // Create script element
         const script = document.createElement('script');
-        script.src = `${url}&callback=${callbackName}`;
+        
+        // Add callback parameter to URL
+        const separator = url.includes('?') ? '&' : '?';
+        script.src = `${url}${separator}callback=${callbackName}`;
 
         // Create callback function
         window[callbackName] = (data) => {
@@ -642,4 +684,11 @@ function deleteAndPersist(record) {
     const cfg = sheetConfig[type];
     cfg.arrayRef() = cfg.arrayRef().filter(r => r.id !== record.id);
     return saveAllOfType(type);
+}
+
+// Create helper function
+function getWatchDate(item) {
+    return item.type === 'Movie' 
+        ? item.dateWatched 
+        : item.dateFinished;
 }
