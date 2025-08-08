@@ -1,17 +1,33 @@
-// Movie data structure
-let movies = [];
-let currentMovieId = null; // Track movie being rated
+// Data structure
+let movies = [], shows = [], seasons = [], episodes = [];
+let currentRecordId = null; // Track record being rated
 
 // Google Sheets configuration (loaded from json)
 let GOOGLE_SHEET_ID = "abc123";
-let GOOGLE_SHEET_NAME = "Sheet1";
+let movieSheetName = "Sheet1", showSheetName = "Sheet2", seasonSheetName = "Sheet3", episodeSheetName = "Sheet4";
 let API_URL = "https://script.google.com/macros/s/abc123/exec";
+
+// Google Sheets headers
+let movieHeaders = ['MovieId', 'Title', 'Year', 'Director', 'Type', 'Genre', 'Date Added', 'Date Watched', 'Duration', 'X Rating', 'Y Rating'];
+let showHeaders = ['ShowId', 'Title', 'Year Range', 'Director', 'Type', 'Genre', 'Date Added', 'Date Finished',
+    'Total Seasons', 'Total Episodes', 'X Rating', 'X Avg Rating', 'Y Rating', 'Y Avg Rating'];
+let seasonHeaders = ['ShowId', 'Season #', 'Year Range', 'Director', 'Date Added', 'Date Finished',
+    'TotalEpisodes', 'Finished Episodes', 'X Rating', 'X Avg Rating', 'Y Rating', 'Y Avg Rating'];
+let episodeHeaders = ['ShowId', 'Season #', 'Episode #', 'Title', 'Date Added', 'Date Watched', 'Duration', 'X Rating', 'Y Rating'];
+
+// Centralize Google Sheets Stuff
+const sheetConfig = {
+    Movie: { key: 'Movies', headers: movieHeaders, arrayRef: () => movies },
+    Show: { key: 'Shows', headers: showHeaders, arrayRef: () => shows },
+    Season: { key: 'Seasons', headers: seasonHeaders, arrayRef: () => seasons },
+    Episode: { key: 'Episodes', headers: episodeHeaders, arrayRef: () => episodes }
+};
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function () {
     // Set up event listeners
-    document.getElementById('add-movie-btn').addEventListener('click', openAddMovieModal);
-    document.getElementById('save-new-movie-btn').addEventListener('click', addMovie);
+    document.getElementById('add-movie-btn').addEventListener('click', openAddRecordModal);
+    document.getElementById('save-new-movie-btn').addEventListener('click', addRecord);
     document.getElementById('save-rating-btn').addEventListener('click', saveRating);
     document.querySelector('.close-modal').addEventListener('click', closeModal);
     document.querySelector('.close-add-modal').addEventListener('click', closeAddModal);
@@ -26,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Load data from Google Sheet
-    loadFromGoogleSheet();
+    init();
 
     // Search / Filter
     const searchInput = document.getElementById('search-input');
@@ -55,10 +71,57 @@ function showStatus(message, isSuccess) {
 }
 
 // Open add movie modal
-function openAddMovieModal() {
+function openAddRecordModal() {
     document.getElementById('new-date-added').value = getTodayDate("yyyy-mm-dd");
     document.getElementById('new-movie-name').value = '';
     document.getElementById('add-movie-modal').style.display = 'flex';
+
+    const Type = document.getElementById('new-media-type').value;
+
+    if(Type == "Movie") {
+        document.getElementById('duration-field').style.display = 'flex';
+        document.getElementById('tSeasons-field').style.display = 'none';
+        document.getElementById('tEpisodes-field').style.display = 'none';
+        document.getElementById('show-field').style.display = 'none';
+        document.getElementById('season-num-field').style.display = 'none';
+        document.getElementById('season-num-field').style.display = 'none';
+        document.getElementById('title-field').style.display = 'flex';
+        document.getElementById('genre-field').style.display = 'flex';
+        document.getElementById('director-field').style.display = 'flex';
+    } 
+    else if(Type == "Show") {
+        document.getElementById('duration-field').style.display = 'none';
+        document.getElementById('tSeasons-field').style.display = 'flex';
+        document.getElementById('tEpisodes-field').style.display = 'flex';
+        document.getElementById('show-field').style.display = 'none';
+        document.getElementById('season-num-field').style.display = 'none';
+        document.getElementById('season-num-field').style.display = 'none';
+        document.getElementById('title-field').style.display = 'flex';
+        document.getElementById('genre-field').style.display = 'flex';
+        document.getElementById('director-field').style.display = 'flex';
+    }
+    else if(Type == "Season") {
+        document.getElementById('duration-field').style.display = 'none';
+        document.getElementById('tSeasons-field').style.display = 'none';
+        document.getElementById('tEpisodes-field').style.display = 'flex';
+        document.getElementById('show-field').style.display = 'flex';
+        document.getElementById('season-num-field').style.display = 'flex';
+        document.getElementById('season-num-field').style.display = 'none';
+        document.getElementById('title-field').style.display = 'none';
+        document.getElementById('genre-field').style.display = 'none';
+        document.getElementById('director-field').style.display = 'flex';
+    }
+    else if(Type == "Episode") {
+        document.getElementById('duration-field').style.display = 'flex';
+        document.getElementById('tSeasons-field').style.display = 'none';
+        document.getElementById('tEpisodes-field').style.display = 'none';
+        document.getElementById('show-field').style.display = 'flex';
+        document.getElementById('season-num-field').style.display = 'flex';
+        document.getElementById('episode-num-field').style.display = 'flex';
+        document.getElementById('title-field').style.display = 'flex';
+        document.getElementById('genre-field').style.display = 'none';
+        document.getElementById('director-field').style.display = 'none';
+    }
 }
 
 // Close add movie modal
@@ -66,29 +129,33 @@ function closeAddModal() {
     document.getElementById('add-movie-modal').style.display = 'none';
 }
 
-// Add a movie to the watchlist
-function addMovie() {
-    const nameInput = document.getElementById('new-movie-name');
+// Add record to the watchlist
+function addRecord() {
+    const nameInput = document.getElementById('new-name');
     const dateAddedInput = document.getElementById('new-date-added');
-    const durationInput = document.getElementById('movie-duration');
+    const durationInput = document.getElementById('new-duration');
     const typeInput = document.getElementById('new-media-type');
 
-    const movieName = nameInput.value.trim();
+    const title = nameInput.value.trim();
 
-    if (!movieName) {
-        alert('Please enter a movie title');
+    if (!title) {
+        alert('Please enter a title');
         return;
     }
 
+    const Year = document.getElementById('new-year').value;
+    const Director = document.getElementById('new-director').value.split(',').map(d => d.trim()).filter(d => d);
+    const Type = typeInput.value;
+    const Genre = document.getElementById('new-genre').value.split(',').map(g => g.trim()).filter(g => g);
     const Duration = parseFloat(durationInput.value);
 
-    const movie = {
+    const record = {
         id: Date.now(),
-        name: movieName,
-        year: parseInt(document.getElementById('new-movie-year').value) || '',
-        director: document.getElementById('new-movie-director').value.trim() || '',
-        type: typeInput.value || '',
-        genre: document.getElementById('new-movie-genre').value.split(',').map(g => g.trim()).filter(g => g) || [],
+        name: title,
+        year: Year || "",
+        director: Director || [""],
+        type: Type || '',
+        genre: Genre || [],
         dateAdded: formatDate(dateAddedInput.value),
         dateWatched: null,
         duration: Duration, // Duration in hours
@@ -97,17 +164,22 @@ function addMovie() {
     };
 
     // Add to local array and save to Google Sheet
-    movies.push(movie);
-    renderWatchlist();
-    updateStats();
-    saveToGoogleSheet();
-    closeAddModal();
+    movies.push(record);
+
+    persistRecords([record])
+        .then(() => {
+            renderWatchlist();
+            updateStats();
+            closeAddModal();
+        })
+        .catch(err => showStatus('Save failed: ' + err, false));
 
     // Clear Fields
-    document.getElementById('new-movie-name').value = "";
-    document.getElementById('new-date-added').value = "";
-    document.getElementById('movie-duration').value = "";
-    document.getElementById('new-media-type').value = "";
+    document.getElementById('new-movie-name').value = null;
+    document.getElementById('new-movie-year').value = null;
+    document.getElementById('new-movie-director').value = null
+    document.getElementById('new-movie-genre').value = null;
+    document.getElementById('movie-duration').value = 2;
 }
 
 // Open rating modal
@@ -115,7 +187,7 @@ function openRatingModal(id) {
     const movie = movies.find(m => m.id === id);
     if (!movie) return;
 
-    currentMovieId = id;
+    currentRecordId = id;
     document.getElementById('modal-movie-title').textContent = movie.name;
     document.getElementById('new-date-added').value = getTodayDate("yyyy-mm-dd");
 
@@ -130,24 +202,27 @@ function openRatingModal(id) {
 // Close rating modal
 function closeModal() {
     document.getElementById('rating-modal').style.display = 'none';
-    currentMovieId = null;
+    currentRecordId = null;
 }
 
 // Save rating from modal
 function saveRating() {
-    if (!currentMovieId) return;
+    if (!currentRecordId) return;
 
-    const movie = movies.find(m => m.id === currentMovieId);
+    const movie = movies.find(m => m.id === currentRecordId);
     if (movie) {
         movie.dateWatched = document.getElementById('date-watched').value;
         movie.yRating = getRating('modal-y-rating');
         movie.xRating = getRating('modal-x-rating');
 
         // Update local array and save to Google Sheet
-        renderWatchlist();
-        updateStats();
-        saveToGoogleSheet();
-        closeModal();
+        persistRecords([movie])
+            .then(() => {
+                renderWatchlist();
+                updateStats();
+                closeModal();
+            })
+            .catch(err => showStatus('Save failed: ' + err, false));
     }
 }
 
@@ -186,13 +261,17 @@ function getRating(containerId) {
     return filledStars;
 }
 
-// Remove movie from watchlist
-function removeMovie(id) {
+// Remove record from watchlist
+function removeRecord(id) {
     if (confirm('Are you sure you want to remove this movie?')) {
-        movies = movies.filter(m => m.id !== id);
-        renderWatchlist();
-        updateStats();
-        saveToGoogleSheet();
+        const toDelete = movies.find(m => m.id === id);
+        if (!toDelete) return;
+        deleteAndPersist(toDelete)
+            .then(() => {
+                renderWatchlist();
+                updateStats();
+            })
+            .catch(err => showStatus('Delete failed: ' + err, false));
     }
 }
 
@@ -201,7 +280,13 @@ function renderWatchlist() {
     const tbody = document.getElementById('watchlist-body');
     const emptyState = document.getElementById('empty-state');
 
-    if (movies.length === 0) {
+    const combined = [
+        ...movies.map(m => ({ ...m, kind: 'Movie' })),
+        ...shows.map(s => ({ ...s, kind: 'Show' })),
+    ];
+
+    // Nothing... nothing to see or do
+    if (combined.movies.length === 0 && combined.shows.length === 0) {
         tbody.innerHTML = '';
         emptyState.style.display = 'block';
         return;
@@ -218,10 +303,10 @@ function renderWatchlist() {
     const filtered = movies.filter(m => {
         if (!term) return true; // Display every movie / show 
         // Fields to Search
-        const inTitle    = m.name.toLowerCase().includes(term);
+        const inTitle = m.name.toLowerCase().includes(term);
         const inDirector = (m.director || '').toLowerCase().includes(term);
-        const inType     = (m.type     || '').toLowerCase().includes(term);
-        const inGenre    = m.genre.join(' ').toLowerCase().includes(term);
+        const inType = (m.type || '').toLowerCase().includes(term);
+        const inGenre = m.genre.join(' ').toLowerCase().includes(term);
         return inTitle || inDirector || inType || inGenre;
     });
 
@@ -270,7 +355,7 @@ function renderWatchlist() {
         removeBtn.className = 'action-btn btn-secondary';
         removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
         removeBtn.title = 'Remove movie';
-        removeBtn.onclick = () => removeMovie(movie.id);
+        removeBtn.onclick = () => removeRecord(movie.id);
         actions.appendChild(removeBtn);
 
         // Build row
@@ -419,8 +504,8 @@ function updateStats() {
 
     // Calculate total duration only for watched movies
     const totalDuration = movies
-      .filter(m => m.dateWatched) // only watched ones
-      .reduce((sum, movie) => sum + (movie.duration || 0), 0);
+        .filter(m => m.dateWatched) // only watched ones
+        .reduce((sum, movie) => sum + (movie.duration || 0), 0);
     document.getElementById('total-duration').textContent = totalDuration;
 
     // Calculate average ratings
@@ -444,19 +529,15 @@ function triggerFileInput() {
 function handleConfigFile(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
-    reader.onload = function (e) {
+    reader.onload = e => {
         try {
-            const config = JSON.parse(e.target.result);
-            updateConfig(config);
-            showStatus('Configuration imported successfully!', true);
-            console.log('Configuration imported successfully!');
-            // Reload data with new configuration
-            loadFromGoogleSheet();
-        } catch (error) {
-            console.error('Error parsing config file:', error);
-            showStatus('Invalid configuration file', false);
+            const cfg = JSON.parse(e.target.result);
+            updateConfig(cfg);
+            showStatus('Configuration loaded!', true);
+            init(); // Reload data with new configuration
+        } catch {
+            showStatus('Invalid config file', false);
         }
     };
     reader.readAsText(file);
@@ -464,9 +545,12 @@ function handleConfigFile(event) {
 
 // Update Google Sheets Config
 function updateConfig(config) {
-    if (config.sheetId) GOOGLE_SHEET_ID = config.sheetId;
-    if (config.sheetName) GOOGLE_SHEET_NAME = config.sheetName;
-    if (config.apiUrl) API_URL = config.apiUrl;
+    GOOGLE_SHEET_ID = config.sheetId;
+    movieSheetName = config.movieSheet;
+    showSheetName = config.showSheet;
+    seasonSheetName = config.seasonSheet;
+    episodeSheetName = config.episodeSheet;
+    API_URL = config.apiUrl;
 }
 
 function loadWithJsonp(url, callbackName) {
@@ -494,76 +578,68 @@ function loadWithJsonp(url, callbackName) {
     });
 }
 
+function fetchSheet(name) {
+    const sheetName = {
+        Movies: movieSheetName,
+        Shows: showSheetName,
+        Seasons: seasonSheetName,
+        Episodes: episodeSheetName
+    }[name];
+    return new Promise(resolve => {
+        loadWithJsonp(`${API_URL}?action=get&sheetId=${GOOGLE_SHEET_ID}&sheetName=${sheetName}`, data => resolve({ name, data }));
+    });
+}
+
+function fetchAll() {
+    return Promise.all(['Movies', 'Shows', 'Seasons', 'Episodes'].map(n => fetchSheet(n)));
+}
+
+function populateArrays(arr) {
+    arr.forEach(({ name, data }) => {
+        window[name.toLowerCase()] = data;
+    });
+}
+
 // Load data from Google Sheet
-function loadFromGoogleSheet() {
-    showLoader();
-    showStatus('Loading data from Google Sheet...', 2);
-
-    const url = `${API_URL}?action=get&sheetId=${GOOGLE_SHEET_ID}&sheetName=${GOOGLE_SHEET_NAME}`;
-
-    // Use JSONP for GET requests
-    loadWithJsonp(url, 'handleSheetData')
-        .then(data => {
-            movies = data.map(row => ({
-                id: Date.now() + Math.random(),
-                name: row.Title || '',
-                year: parseInt(row.Year) || '',
-                director: row.Director || '',
-                type: row.Type || '',
-                genre: row.Genre ? row.Genre.split(',').map(g => g.trim()).filter(g => g) : [],
-                dateAdded: formatDate(row['Date Added']),
-                dateWatched: row['Date Watched'] ? formatDate(row['Date Watched']) : null,
-                duration: parseFloat(row.Duration) || 0,
-                xRating: parseInt(row['X Rating']) || 0,
-                yRating: parseInt(row['Y Rating']) || 0
-            }));
-
-            sortWatchlist("dateAdded");
-            updateStats();
-            hideLoader();
-            showStatus('Data loaded successfully!', true);
-        })
-        .catch(error => {
-            console.error('Error loading data:', error);
-            hideLoader();
-            showStatus('Error loading data: ' + error.message, false);
-        });
+function init() {
+    fetchAll().then(populateArrays).then(() => renderWatchlist());
 }
 
 // Save data to Google Sheet
-function saveToGoogleSheet() {
-    showStatus('Saving to Google Sheet...', 2);
+function saveRecords(sheetKey, records, headers) {
+    const sheetName = {
+        Movies: movieSheetName,
+        Shows: showSheetName,
+        Seasons: seasonSheetName,
+        Episodes: episodeSheetName
+    }[sheetKey];
 
-    const dataToSend = {
-        action: 'update',
-        sheetId: GOOGLE_SHEET_ID,
-        sheetName: GOOGLE_SHEET_NAME,
-        movies: movies.map(movie => ({
-            Title: movie.name,
-            Year: movie.year || '',
-            Director: movie.director || '',
-            Type: movie.type || '',
-            Genre: movie.genre.join(', ') || '',
-            'Date Added': movie.dateAdded,
-            'Date Watched': movie.dateWatched || '',
-            Duration: movie.duration || '',
-            'X Rating': movie.xRating || '',
-            'Y Rating': movie.yRating || ''
-        }))
-    };
-
-    // Use fetch with no-cors mode
-    fetch(API_URL, {
+    return fetch(API_URL, {
         method: 'POST',
-        mode: 'no-cors',
-        redirect: 'follow',
-        body: JSON.stringify(dataToSend)
-    })
-        .then(() => {
-            showStatus('Data saved to Google Sheet!', true);
+        body: JSON.stringify({
+            sheetId: GOOGLE_SHEET_ID,
+            sheetName,
+            headers,
+            records
         })
-        .catch(error => {
-            console.error('Error saving data:', error);
-            showStatus('Error saving to Google Sheet', false);
-        });
+    });
+}
+
+// Helper functions for sheet stuff
+// Upsert one or more records into the correct sheet
+function persistRecords(records) {
+    if (!records || !records.length) return Promise.resolve();
+    const type = records[0].type;
+    const cfg = sheetConfig[type];
+    if (!cfg) throw new Error(`Unknown type: ${type}`);
+
+    return saveRecords(cfg.key, records, cfg.headers);
+}
+
+// Remove a single record and then persist the whole array
+function deleteAndPersist(record) {
+    const type = record.type;
+    const cfg = sheetConfig[type];
+    cfg.arrayRef() = cfg.arrayRef().filter(r => r.id !== record.id);
+    return saveAllOfType(type);
 }
