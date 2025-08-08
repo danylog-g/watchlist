@@ -67,6 +67,7 @@ function addMovie() {
     const nameInput = document.getElementById('new-movie-name');
     const dateAddedInput = document.getElementById('new-date-added');
     const durationInput = document.getElementById('movie-duration');
+    const typeInput = document.getElementById('new-media-type');
 
     const movieName = nameInput.value.trim();
 
@@ -82,6 +83,7 @@ function addMovie() {
         name: movieName,
         year: parseInt(document.getElementById('new-movie-year').value) || '',
         director: document.getElementById('new-movie-director').value.trim() || '',
+        type: typeInput.value || '',
         genre: document.getElementById('new-movie-genre').value.split(',').map(g => g.trim()).filter(g => g) || [],
         dateAdded: formatDate(dateAddedInput.value),
         dateWatched: null,
@@ -460,6 +462,7 @@ function loadFromGoogleSheet() {
                 name: row.Title || '',
                 year: parseInt(row.Year) || '',
                 director: row.Director || '',
+                type: row.Type || '',
                 genre: row.Genre ? row.Genre.split(',').map(g => g.trim()).filter(g => g) : [],
                 dateAdded: formatDate(row['Date Added']),
                 dateWatched: row['Date Watched'] ? formatDate(row['Date Watched']) : null,
@@ -492,6 +495,7 @@ function saveToGoogleSheet() {
             Title: movie.name,
             Year: movie.year || '',
             Director: movie.director || '',
+            Type: movie.type || '',
             Genre: movie.genre.join(', ') || '',
             'Date Added': movie.dateAdded,
             'Date Watched': movie.dateWatched || '',
