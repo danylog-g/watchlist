@@ -305,29 +305,40 @@ function createRatingStars(rating) {
 
 // Sort the watchlist
 function sortWatchlist(sortBy) {
+    // Get header cell and flip direction
+    const th = document.querySelector(`th[data-sort="${sortBy}"]`);
+    // Default to ascending, otherwise toggle
+    const direction = th.dataset.order === 'asc' ? 'desc' : 'asc';
+    th.dataset.order = direction;
+
+    // Sort with basic compare
     movies.sort((a, b) => {
+        let cmp = 0;
         // Handle different data types
         if (sortBy === 'name') {
-            return a.name.localeCompare(b.name);
+            cmp = a.name.localeCompare(b.name);
         } else if (sortBy === 'year') {
-            return (b.year || 0) - (a.year || 0);
+            cmp = (a.year || 0) - (b.year || 0);
         } else if (sortBy === 'director') {
-            return (a.director || '').localeCompare(b.director || '');
+            cmp = (a.director || '').localeCompare(b.director || '');
         } else if (sortBy === 'genre') {
             // Compare first genre
-            const genreA = a.genre[0] || '';
-            const genreB = b.genre[0] || '';
-            return genreA.localeCompare(genreB);
+            const ga = a.genre[0] || '';
+            const gb = b.genre[0] || '';
+            cmp = ga.localeCompare(gb);
         } else if (sortBy === 'dateAdded' || sortBy === 'dateWatched') {
-            const dateA = a[sortBy] ? new Date(a[sortBy]) : new Date(0);
-            const dateB = b[sortBy] ? new Date(b[sortBy]) : new Date(0);
-            return dateB - dateA; // Newest first
+            const da = a[sortBy] ? new Date(a[sortBy]) : new Date(0);
+            const db = b[sortBy] ? new Date(b[sortBy]) : new Date(0);
+            cmp = da - db;
         } else {
-            // For ratings
-            return (b[sortBy] || 0) - (a[sortBy] || 0);
+            // For Ratings
+            cmp = (a[sortBy] || 0) - (b[sortBy] || 0);
         }
+
+        return direction === 'asc' ? cmp : -cmp;
     });
 
+    // Re-Render entire watchlist
     renderWatchlist();
 }
 
@@ -501,7 +512,7 @@ function loadFromGoogleSheet() {
                 yRating: parseInt(row['Y Rating']) || 0
             }));
 
-            sortWatchlist("name");
+            sortWatchlist("dateAdded");
             updateStats();
             hideLoader();
             showStatus('Data loaded successfully!', true);
