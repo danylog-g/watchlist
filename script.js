@@ -596,9 +596,7 @@ function loadWithJsonp(url, callbackName) {
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
         const separator = url.includes('?') ? '&' : '?';
-        
-        // Use the new deployment URL here
-        const fullUrl = `${url}${separator}sheetId=${GOOGLE_SHEET_ID}&sheetName=${sheetName}&callback=${callbackName}`;
+        const fullUrl = `${url}${separator}callback=${callbackName}`;
         
         console.log('Fetching URL:', fullUrl);
         script.src = fullUrl;
@@ -607,7 +605,7 @@ function loadWithJsonp(url, callbackName) {
         const timeout = setTimeout(() => {
             cleanup();
             reject(new Error('JSONP request timed out'));
-        }, 15000);
+        }, 15000); // 15 seconds timeout
 
         function cleanup() {
             delete window[callbackName];
@@ -638,8 +636,17 @@ function fetchSheet(name) {
         Seasons: seasonSheetName,
         Episodes: episodeSheetName
     }[name];
-    return new Promise(resolve => {
-        loadWithJsonp(`${API_URL}?action=get&sheetId=${GOOGLE_SHEET_ID}&sheetName=${sheetName}`, data => resolve({ name, data }));
+    
+    return new Promise((resolve, reject) => {
+        const callbackName = `callback_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        const url = `${API_URL}?action=get&sheetId=${GOOGLE_SHEET_ID}&sheetName=${sheetName}`;
+        
+        loadWithJsonp(url, callbackName)
+            .then(data => resolve({ name, data }))
+            .catch(error => {
+                console.error(`Error fetching ${name} sheet:`, error);
+                reject(error);
+            });
     });
 }
 
