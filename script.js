@@ -384,7 +384,7 @@ function renderWatchlist() {
                     <td>${item.year || '-'}</td>
                     <td>${item.director || '-'}</td>
                     <td>${item.type || '-'}</td>
-                    <td>${item.genre.join(', ') || '-'}</td>
+                    <td>${item.genre || '-'}</td>
                     <td>${dateAdded}</td>
                     <td>${dateWatched}</td>
                     <td>${xRatingStars}</td>
