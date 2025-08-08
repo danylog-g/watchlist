@@ -9,9 +9,6 @@ let API_URL = "https://script.google.com/macros/s/abc123/exec";
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function () {
-    // Set today's date as default for date added
-    const today = new Date().toISOString().split('T')[0];
-
     // Set up event listeners
     document.getElementById('add-movie-btn').addEventListener('click', openAddMovieModal);
     document.getElementById('save-new-movie-btn').addEventListener('click', addMovie);
@@ -55,7 +52,7 @@ function showStatus(message, isSuccess) {
 
 // Open add movie modal
 function openAddMovieModal() {
-    document.getElementById('new-date-added').value = new Date().toISOString().split('T')[0];
+    document.getElementById('new-date-added').value = getTodayDate();
     document.getElementById('new-movie-name').value = '';
     document.getElementById('add-movie-modal').style.display = 'flex';
 }
@@ -102,7 +99,7 @@ function openRatingModal(id) {
 
     currentMovieId = id;
     document.getElementById('modal-movie-title').textContent = movie.name;
-    document.getElementById('date-watched').value = new Date().toISOString().split('T')[0];
+    document.getElementById('new-date-added').value = getTodayDate();
     document.getElementById('movie-duration').value = movie.duration > 0 ? movie.duration : 2;
 
     // Initialize rating stars
@@ -201,9 +198,8 @@ function renderWatchlist() {
         const row = document.createElement('tr');
 
         // Format dates
-        const dateAdded = new Date(movie.dateAdded).toLocaleDateString();
-        const dateWatched = movie.dateWatched ?
-            new Date(movie.dateWatched).toLocaleDateString() : 'Not watched';
+        const dateAdded = formatDate(movie.dateAdded);
+        const dateWatched = movie.dateWatched ? formatDate(movie.dateWatched) : 'Not watched';
 
         // Create rating stars
         const xRatingStars = movie.xRating > 0 ? createRatingStars(movie.xRating) : '-';
@@ -288,6 +284,25 @@ function sortWatchlist(sortBy) {
     });
 
     renderWatchlist();
+}
+
+// Helper function to format date as DD-MM-YYYY
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+}
+
+// Get today's date in local timezone (YYYY-MM-DD format)
+function getTodayDate() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 // Update statistics
@@ -388,8 +403,8 @@ function loadFromGoogleSheet() {
             movies = data.map(row => ({
                 id: Date.now() + Math.random(),
                 name: row.Title || '',
-                dateAdded: row['Date Added'] || '',
-                dateWatched: row['Date Watched'] || null,
+                dateAdded: formatDate(row['Date Added']) || '',
+                dateWatched: row['Date Watched'] ? formatDate(row['Date Watched']) : null,
                 duration: parseInt(row.Duration) || 0,
                 xRating: parseInt(row['X Rating']) || 0,
                 yRating: parseInt(row['Y Rating']) || 0
