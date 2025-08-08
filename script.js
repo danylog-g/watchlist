@@ -80,7 +80,7 @@ function addMovie() {
         year: parseInt(document.getElementById('new-movie-year').value) || '',
         director: document.getElementById('new-movie-director').value.trim() || '',
         genre: document.getElementById('new-movie-genre').value.split(',').map(g => g.trim()).filter(g => g) || [],
-        dateAdded: dateAddedInput.value,
+        dateAdded: formatDate(dateAddedInput.value),
         dateWatched: null,
         duration: 0, // Duration in hours
         xRating: 0, // Will be set when watched
@@ -298,38 +298,54 @@ function sortWatchlist(sortBy) {
     renderWatchlist();
 }
 
-// Helper function to parse dates correctly
+// Parse whatever string you give me into a real Date object (or null)
 function parseDate(dateString) {
     if (!dateString) return null;
-    
-    // Handle both yyyy-mm-dd and dd-mm-yyyy formats
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        // ISO format (yyyy-mm-dd)
-        const [year, month, day] = dateString.split('-');
-        return new Date(day, month - 1, year);
-    } else if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
-        // dd-mm-yyyy format
-        const [day, month, year] = dateString.split('-');
-        return new Date(year, month - 1, day);
+
+    // If it's already a Date (unlikely here), just return it:
+    if (dateString instanceof Date) return dateString;
+
+    // 1) ISO with time: "2025-08-07T04:00:00.000Z"
+    let m = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+    if (m) {
+        const [_, y, M, d] = m.map(Number);
+        // Use UTC so no timezone shift
+        return new Date(Date.UTC(y, M - 1, d));
     }
-    
-    return new Date(dateString);
+
+    // 2) Pure ISO date: "2025-08-07"
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        const [y, M, d] = dateString.split('-').map(Number);
+        return new Date(y, M - 1, d);
+    }
+
+    // 3) Browser-munged US style: "8/7/2025" or "08/07/2025"
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateString)) {
+        const [mth, day, yr] = dateString.split('/').map(Number);
+        return new Date(yr, mth - 1, day);
+    }
+
+    // 4) DD-MM-YYYY: "07-08-2025"
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+        const [day, mth, yr] = dateString.split('-').map(Number);
+        return new Date(yr, mth - 1, day);
+    }
+
+    // Fallback: let JS try
+    const d = new Date(dateString);
+    return isNaN(d) ? null : d;
 }
 
-// Handle timezones
+// Turn a Date (or parseable string) into "DD-MM-YYYY"
 function formatDate(dateString) {
-    if (!dateString) return '';
-    
-    const date = parseDate(dateString);
-    if (isNaN(date)) return dateString; // Fallback to original if invalid
-    
-    // Use UTC methods to avoid timezone shifts
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const year = date.getUTCFullYear();
-    
+    const d = parseDate(dateString);
+    if (!d) return '';
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const year = d.getUTCFullYear();
     return `${day}-${month}-${year}`;
 }
+
 
 // Return in dd-mm-yyyy format
 function getTodayDate() {
