@@ -193,11 +193,11 @@ function addRecord() {
         .catch(err => showStatus('Save failed: ' + err, false));
 
     // Clear Fields
-    document.getElementById('new-movie-name').value = null;
-    document.getElementById('new-movie-year').value = null;
-    document.getElementById('new-movie-director').value = null
-    document.getElementById('new-movie-genre').value = null;
-    document.getElementById('movie-duration').value = 2;
+    document.getElementById('new-name').value = null;
+    document.getElementById('new-year').value = null;
+    document.getElementById('new-director').value = null
+    document.getElementById('new-genre').value = null;
+    document.getElementById('new-duration').value = 2;
 }
 
 // Open rating modal
