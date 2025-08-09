@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('save-new-movie-btn').addEventListener('click', addRecord);
     document.getElementById('save-rating-btn').addEventListener('click', saveRating);
     document.querySelector('.close-modal').addEventListener('click', closeModal);
+    document.getElementById('new-media-type').addEventListener('change', openAddRecordModal);
     document.querySelector('.close-add-modal').addEventListener('click', closeAddModal);
     document.getElementById('import-config-btn').addEventListener('click', triggerFileInput);
     document.getElementById('config-file-input').addEventListener('change', handleConfigFile);
@@ -72,55 +73,54 @@ function showStatus(message, isSuccess) {
 
 // Open add movie modal
 function openAddRecordModal() {
+    // Reset all fields to default state first
+    const allFields = [
+        'duration-field', 'tSeasons-field', 'tEpisodes-field', 
+        'show-field', 'season-num-field', 'episode-num-field',
+        'title-field', 'genre-field', 'director-field'
+    ];
+    
+    allFields.forEach(id => {
+        document.getElementById(id).style.display = 'none';
+    });
+
+    // Set default values
     document.getElementById('new-date-added').value = getTodayDate("yyyy-mm-dd");
     document.getElementById('new-name').value = '';
     document.getElementById('add-movie-modal').style.display = 'flex';
 
-    const Type = document.getElementById('new-media-type').value;
+    // Always show these fields
+    document.getElementById('type-field').style.display = 'flex';
+    document.getElementById('title-field').style.display = 'flex';
+    document.getElementById('year-field').style.display = 'flex';
+    document.getElementById('date-field').style.display = 'flex';
 
-    if(Type == "Movie") {
+    const type = document.getElementById('new-media-type').value;
+
+    // Set up fields based on media type
+    if(type === "Movie") {
         document.getElementById('duration-field').style.display = 'flex';
-        document.getElementById('tSeasons-field').style.display = 'none';
-        document.getElementById('tEpisodes-field').style.display = 'none';
-        document.getElementById('show-field').style.display = 'none';
-        document.getElementById('season-num-field').style.display = 'none';
-        document.getElementById('season-num-field').style.display = 'none';
-        document.getElementById('title-field').style.display = 'flex';
         document.getElementById('genre-field').style.display = 'flex';
         document.getElementById('director-field').style.display = 'flex';
     } 
-    else if(Type == "Show") {
-        document.getElementById('duration-field').style.display = 'none';
+    else if(type === "Show") {
         document.getElementById('tSeasons-field').style.display = 'flex';
         document.getElementById('tEpisodes-field').style.display = 'flex';
-        document.getElementById('show-field').style.display = 'none';
-        document.getElementById('season-num-field').style.display = 'none';
-        document.getElementById('episode-num-field').style.display = 'none';
-        document.getElementById('title-field').style.display = 'flex';
         document.getElementById('genre-field').style.display = 'flex';
         document.getElementById('director-field').style.display = 'flex';
     }
-    else if(Type == "Season") {
-        document.getElementById('duration-field').style.display = 'none';
-        document.getElementById('tSeasons-field').style.display = 'none';
+    else if(type === "Season") {
         document.getElementById('tEpisodes-field').style.display = 'flex';
         document.getElementById('show-field').style.display = 'flex';
         document.getElementById('season-num-field').style.display = 'flex';
-        document.getElementById('season-num-field').style.display = 'none';
-        document.getElementById('title-field').style.display = 'none';
-        document.getElementById('genre-field').style.display = 'none';
         document.getElementById('director-field').style.display = 'flex';
     }
-    else if(Type == "Episode") {
+    else if(type === "Episode") {
         document.getElementById('duration-field').style.display = 'flex';
-        document.getElementById('tSeasons-field').style.display = 'none';
-        document.getElementById('tEpisodes-field').style.display = 'none';
         document.getElementById('show-field').style.display = 'flex';
         document.getElementById('season-num-field').style.display = 'flex';
         document.getElementById('episode-num-field').style.display = 'flex';
         document.getElementById('title-field').style.display = 'flex';
-        document.getElementById('genre-field').style.display = 'none';
-        document.getElementById('director-field').style.display = 'none';
     }
 }
 
