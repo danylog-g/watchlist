@@ -342,10 +342,13 @@ function renderWatchlist() {
 
         // Format dates
         const dateAdded = item.dateAdded ? formatDate(item.dateAdded) : '';
-        const dateWatched = item.dateWatched ? formatDate(item.dateWatched) : 'Not watched';
-
-        // Use item.watchDate for movies vs shows
         const watchDate = getWatchDate(item);
+        const dateWatched = watchDate ? formatDate(watchDate) : 'Not watched';
+
+        // Fix genre display
+        const genreDisplay = Array.isArray(item.genre) 
+            ? item.genre.join(', ') 
+            : item.genre || '-';
 
         // Create rating stars
         const xRatingStars = item.xRating > 0 ? createRatingStars(item.xRating) : '-';
@@ -384,7 +387,7 @@ function renderWatchlist() {
                     <td>${item.year || '-'}</td>
                     <td>${item.director || '-'}</td>
                     <td>${item.type || '-'}</td>
-                    <td>${item.genre || '-'}</td>
+                    <td>${genreDisplay || '-'}</td>
                     <td>${dateAdded}</td>
                     <td>${dateWatched}</td>
                     <td>${xRatingStars}</td>
@@ -517,16 +520,25 @@ function getTodayDate(mode) {
 
 // Update statistics
 function updateStats() {
-    document.getElementById('total-movies').textContent = movies.length;
+    const totalMovies = movies.length;
+    const totalShows = shows.length;
+    const watchedMovies = movies.filter(m => m.dateWatched).length;
+    const watchedShows = shows.filter(s => s.dateFinished).length;
+    
+    document.getElementById('total-movies').textContent = totalMovies;
+    document.getElementById('total-shows').textContent = totalShows;
+    document.getElementById('watched-movies').textContent = watchedMovies;
+    document.getElementById('watched-shows').textContent = watchedShows;
 
-    const watched = movies.filter(m => m.dateWatched).length;
-    document.getElementById('watched-movies').textContent = watched;
-
-    // Calculate total duration only for watched movies
-    const totalDuration = movies
-        .filter(m => m.dateWatched) // only watched ones
-        .reduce((sum, movie) => sum + (movie.duration || 0), 0);
-    document.getElementById('total-duration').textContent = totalDuration;
+    // Calculate total duration for movies
+    const movieDuration = movies
+        .filter(m => m.dateWatched)
+        .reduce((sum, m) => sum + (m.duration || 0), 0);
+        
+    // Calculate total duration for shows (if applicable)
+    const showDuration = 0; // Add your show duration calculation here
+    
+    document.getElementById('total-duration').textContent = (movieDuration + showDuration).toFixed(1);
 
     // Calculate average ratings
     const xRatings = movies.filter(m => m.xRating > 0).map(m => m.xRating);
@@ -538,16 +550,6 @@ function updateStats() {
     const avgYRating = yRatings.length ?
         (yRatings.reduce((a, b) => a + b, 0) / yRatings.length).toFixed(1) : '0.0';
     document.getElementById('avg-y-rating').textContent = avgYRating;
-
-    // Other Stuff
-    const totalMovies = movies.length;
-    const totalShows = shows.length;
-    const watchedMovies = movies.filter(m => m.dateWatched).length;
-    const watchedShows = shows.filter(s => s.dateFinished).length;
-    document.getElementById('total-movies').textContent = totalMovies;
-    document.getElementById('total-shows').textContent = totalShows;
-    document.getElementById('watched-movies').textContent = watchedMovies;
-    document.getElementById('watched-shows').textContent = watchedShows;
 }
 
 // Ask for file to upload
@@ -655,11 +657,22 @@ function fetchAll() {
 // Function to poppulate important shit
 function populateArrays(arr) {
     arr.forEach(({ name, data }) => {
-        // Properly assign to the correct array
-        if (name === 'Movies') movies = data;
-        else if (name === 'Shows') shows = data;
-        else if (name === 'Seasons') seasons = data;
-        else if (name === 'Episodes') episodes = data;
+        if (name === 'Movies') {
+            movies = data.map(row => ({
+                id: row.MovieId || Date.now().toString(),
+                name: row.Title || '',
+                year: row.Year || '',
+                director: row.Director || '',
+                type: 'Movie',
+                genre: row.Genre ? row.Genre.split(',').map(g => g.trim()) : [],
+                dateAdded: row['Date Added'] || '',
+                dateWatched: row['Date Watched'] || null,
+                duration: parseFloat(row.Duration) || 0,
+                xRating: parseInt(row['X Rating']) || 0,
+                yRating: parseInt(row['Y Rating']) || 0
+            }));
+        }
+        // TODO: similar mappings for other types
     });
 }
 
