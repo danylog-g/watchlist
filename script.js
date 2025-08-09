@@ -193,10 +193,10 @@ function addRecord() {
         .catch(err => showStatus('Save failed: ' + err, false));
 
     // Clear Fields
-    document.getElementById('new-name').value = null;
-    document.getElementById('new-year').value = null;
-    document.getElementById('new-director').value = null
-    document.getElementById('new-genre').value = null;
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-year').value = '';
+    document.getElementById('new-director').value = ''
+    document.getElementById('new-genre').value = '';
     document.getElementById('new-duration').value = 2;
 }
 
