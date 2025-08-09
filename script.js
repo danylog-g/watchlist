@@ -75,11 +75,11 @@ function showStatus(message, isSuccess) {
 function openAddRecordModal() {
     // Reset all fields to default state first
     const allFields = [
-        'duration-field', 'tSeasons-field', 'tEpisodes-field', 
+        'duration-field', 'tSeasons-field', 'tEpisodes-field',
         'show-field', 'season-num-field', 'episode-num-field',
         'title-field', 'genre-field', 'director-field'
     ];
-    
+
     allFields.forEach(id => {
         document.getElementById(id).style.display = 'none';
     });
@@ -98,23 +98,23 @@ function openAddRecordModal() {
     const type = document.getElementById('new-media-type').value;
 
     // Set up fields based on media type
-    if(type === "Movie") {
+    if (type === "Movie") {
         document.getElementById('duration-field').style.display = 'flex';
         document.getElementById('genre-field').style.display = 'flex';
         document.getElementById('director-field').style.display = 'flex';
-    } 
-    else if(type === "Show") {
+    }
+    else if (type === "Show") {
         document.getElementById('tSeasons-field').style.display = 'flex';
         document.getElementById('genre-field').style.display = 'flex';
         document.getElementById('director-field').style.display = 'flex';
     }
-    else if(type === "Season") {
+    else if (type === "Season") {
         document.getElementById('tEpisodes-field').style.display = 'flex';
         document.getElementById('show-field').style.display = 'flex';
         document.getElementById('season-num-field').style.display = 'flex';
         document.getElementById('director-field').style.display = 'flex';
     }
-    else if(type === "Episode") {
+    else if (type === "Episode") {
         document.getElementById('duration-field').style.display = 'flex';
         document.getElementById('show-field').style.display = 'flex';
         document.getElementById('season-num-field').style.display = 'flex';
@@ -148,7 +148,7 @@ function addRecord() {
     const Genre = document.getElementById('new-genre').value.split(',').map(g => g.trim()).filter(g => g);
     const Duration = parseFloat(durationInput.value);
 
-    switch(type) {
+    switch (type) {
         case 'Movie':
             record = {
                 // Movie-specific fields
@@ -185,10 +185,14 @@ function addRecord() {
     }
 
     persistRecords([record])
-        .then(() => {
-            renderWatchlist();
-            updateStats();
-            closeAddModal();
+        .then(response => {
+            if (response.success) {
+                renderWatchlist();
+                updateStats();
+                closeAddModal();
+            } else {
+                showStatus('Save failed: ' + (response.error || 'Unknown error'), false);
+            }
         })
         .catch(err => showStatus('Save failed: ' + err, false));
 
@@ -235,10 +239,14 @@ function saveRating() {
 
         // Update local array and save to Google Sheet
         persistRecords([movie])
-            .then(() => {
-                renderWatchlist();
-                updateStats();
-                closeModal();
+            .then(response => {
+                if (response.success) {
+                    renderWatchlist();
+                    updateStats();
+                    closeModal();
+                } else {
+                    showStatus('Save failed: ' + (response.error || 'Unknown error'), false);
+                }
             })
             .catch(err => showStatus('Save failed: ' + err, false));
     }
@@ -345,8 +353,8 @@ function renderWatchlist() {
         const dateWatched = watchDate ? formatDate(watchDate) : 'Not watched';
 
         // Fix genre display
-        const genreDisplay = Array.isArray(item.genre) 
-            ? item.genre.join(', ') 
+        const genreDisplay = Array.isArray(item.genre)
+            ? item.genre.join(', ')
             : item.genre || '-';
 
         // Create rating stars
@@ -523,7 +531,7 @@ function updateStats() {
     const totalShows = shows.length;
     const watchedMovies = movies.filter(m => m.dateWatched).length;
     const watchedShows = shows.filter(s => s.dateFinished).length;
-    
+
     document.getElementById('total-movies').textContent = totalMovies;
     document.getElementById('total-shows').textContent = totalShows;
     document.getElementById('watched-movies').textContent = watchedMovies;
@@ -533,10 +541,10 @@ function updateStats() {
     const movieDuration = movies
         .filter(m => m.dateWatched)
         .reduce((sum, m) => sum + (m.duration || 0), 0);
-        
+
     // Calculate total duration for shows (if applicable)
     const showDuration = 0; // Add your show duration calculation here
-    
+
     document.getElementById('total-duration').textContent = (movieDuration + showDuration).toFixed(1);
 
     // Calculate average ratings
@@ -590,7 +598,7 @@ function loadWithJsonp(url, callbackName) {
         const script = document.createElement('script');
         const separator = url.includes('?') ? '&' : '?';
         const fullUrl = `${url}${separator}callback=${callbackName}`;
-        
+
         console.log('Fetching URL:', fullUrl);
         script.src = fullUrl;
 
@@ -629,11 +637,11 @@ function fetchSheet(name) {
         Seasons: seasonSheetName,
         Episodes: episodeSheetName
     }[name];
-    
+
     return new Promise((resolve, reject) => {
         const callbackName = `callback_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
         const url = `${API_URL}?action=get&sheetId=${GOOGLE_SHEET_ID}&sheetName=${sheetName}`;
-        
+
         loadWithJsonp(url, callbackName)
             .then(data => resolve({ name, data }))
             .catch(error => {
@@ -647,7 +655,7 @@ function fetchAll() {
     return Promise.allSettled(
         ['Movies', 'Shows', 'Seasons', 'Episodes'].map(n => fetchSheet(n))
     ).then(results => {
-        return results.map(result => 
+        return results.map(result =>
             result.status === 'fulfilled' ? result.value : null
         ).filter(Boolean);
     });
@@ -704,13 +712,27 @@ function saveRecords(sheetKey, records, headers) {
 
     return fetch(API_URL, {
         method: 'POST',
+        headers: {
+            'Content-Type': 'text/plain' // Apps Script requires this
+        },
         body: JSON.stringify({
             sheetId: GOOGLE_SHEET_ID,
             sheetName,
             headers,
             records
         })
-    });
+    })
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.text(); // Parse as text first
+        })
+        .then(text => {
+            try {
+                return JSON.parse(text); // Try to parse as JSON
+            } catch {
+                return text; // Return text if not JSON
+            }
+        });
 }
 
 // Helper functions for sheet stuff
@@ -734,7 +756,7 @@ function deleteAndPersist(record) {
 
 // Create helper function
 function getWatchDate(item) {
-    return item.type === 'Movie' 
-        ? item.dateWatched 
+    return item.type === 'Movie'
+        ? item.dateWatched
         : item.dateFinished;
 }
