@@ -73,7 +73,7 @@ function showStatus(message, isSuccess) {
 // Open add movie modal
 function openAddRecordModal() {
     document.getElementById('new-date-added').value = getTodayDate("yyyy-mm-dd");
-    document.getElementById('new-movie-name').value = '';
+    document.getElementById('new-name').value = '';
     document.getElementById('add-movie-modal').style.display = 'flex';
 
     const Type = document.getElementById('new-media-type').value;
