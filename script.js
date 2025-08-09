@@ -105,7 +105,6 @@ function openAddRecordModal() {
     } 
     else if(type === "Show") {
         document.getElementById('tSeasons-field').style.display = 'flex';
-        document.getElementById('tEpisodes-field').style.display = 'flex';
         document.getElementById('genre-field').style.display = 'flex';
         document.getElementById('director-field').style.display = 'flex';
     }
