@@ -187,6 +187,7 @@ function addRecord() {
     persistRecords([record])
         .then(response => {
             if (response.success) {
+                // Success handling
                 renderWatchlist();
                 updateStats();
                 closeAddModal();
@@ -194,14 +195,10 @@ function addRecord() {
                 showStatus('Save failed: ' + (response.error || 'Unknown error'), false);
             }
         })
-        .catch(err => showStatus('Save failed: ' + err, false));
-
-    // Clear Fields
-    document.getElementById('new-name').value = '';
-    document.getElementById('new-year').value = '';
-    document.getElementById('new-director').value = ''
-    document.getElementById('new-genre').value = '';
-    document.getElementById('new-duration').value = 2;
+        .catch(err => {
+            showStatus('Save failed: ' + err.message, false);
+            console.error('Save error:', err);
+        });
 }
 
 // Open rating modal
@@ -224,6 +221,13 @@ function openRatingModal(id) {
 // Close rating modal
 function closeModal() {
     document.getElementById('rating-modal').style.display = 'none';
+    // Clear Fields
+    document.getElementById('new-media-type').value = 'Movie';
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-year').value = '';
+    document.getElementById('new-director').value = ''
+    document.getElementById('new-genre').value = '';
+    document.getElementById('new-duration').value = 2;
     currentRecordId = null;
 }
 
@@ -238,17 +242,21 @@ function saveRating() {
         movie.xRating = getRating('modal-x-rating');
 
         // Update local array and save to Google Sheet
-        persistRecords([movie])
+        persistRecords([cueerntRecordID])
             .then(response => {
                 if (response.success) {
+                    // Success handling
                     renderWatchlist();
                     updateStats();
-                    closeModal();
+                    closeAddModal();
                 } else {
                     showStatus('Save failed: ' + (response.error || 'Unknown error'), false);
                 }
             })
-            .catch(err => showStatus('Save failed: ' + err, false));
+            .catch(err => {
+                showStatus('Save failed: ' + err.message, false);
+                console.error('Save error:', err);
+            });
     }
 }
 
@@ -713,23 +721,27 @@ function saveRecords(sheetKey, records, headers) {
     return fetch(API_URL, {
         method: 'POST',
         headers: {
-            'Content-Type': 'text/plain' // Apps Script requires this
+            'Content-Type': 'application/json' // Use JSON content type
         },
         body: JSON.stringify({
             sheetId: GOOGLE_SHEET_ID,
             sheetName,
             headers,
             records
-        })
+        }),
+        redirect: 'follow', // Important for Apps Script
+        mode: 'cors' // Force CORS mode
     })
         .then(response => {
-            if (!response.ok) throw new Error('Network response was not ok');
-            return response.text(); // Parse as text first
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text(); // Get raw response text
         })
         .then(text => {
             try {
                 return JSON.parse(text); // Try to parse as JSON
-            } catch {
+            } catch (e) {
                 return text; // Return text if not JSON
             }
         });
