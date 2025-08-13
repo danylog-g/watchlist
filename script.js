@@ -93,14 +93,25 @@ async function loadData() {
     showLoader();
     try {
         const response = await fetch(`${config.apiUrl}?action=getAllData`);
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
         const data = await response.json();
+
+        // Check for error in response
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
         processData(data);
         hideLoader();
         updateSyncStatus('Data loaded successfully', 'success');
     } catch (error) {
         console.error('Error loading data:', error);
         hideLoader();
-        updateSyncStatus('Failed to load data', 'error');
+        updateSyncStatus(`Failed to load data: ${error.message}`, 'error');
     }
 }
 
@@ -595,32 +606,43 @@ async function syncData() {
         // Prepare data for each sheet
         const movies = watchlistData
             .filter(item => item.type === 'Movie')
-            .map(item => item.rawData);
+            .map(item => ({ ...item.rawData }));
 
         const shows = watchlistData
             .filter(item => item.type === 'Show')
-            .map(item => item.rawData);
+            .map(item => ({ ...item.rawData }));
 
         const seasons = watchlistData
             .filter(item => item.type === 'Season')
-            .map(item => item.rawData);
+            .map(item => ({ ...item.rawData }));
 
         const episodes = watchlistData
             .filter(item => item.type === 'Episode')
-            .map(item => item.rawData);
+            .map(item => ({ ...item.rawData }));
 
         const response = await fetch(config.apiUrl, {
             method: 'POST',
-            body: JSON.stringify({ movies, shows, seasons, episodes }),
-            headers: { 'Content-Type': 'application/json' }
+            body: JSON.stringify({
+                movies,
+                shows,
+                seasons,
+                episodes
+            }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
 
-        if (!response.ok) throw new Error('Sync failed');
+        const result = await response.json();
+
+        if (!response.ok || result.error) {
+            throw new Error(result.error || `HTTP error: ${response.status}`);
+        }
 
         updateSyncStatus('Data synced successfully', 'success');
     } catch (error) {
         console.error('Sync error:', error);
-        updateSyncStatus('Sync failed', 'error');
+        updateSyncStatus(`Sync failed: ${error.message}`, 'error');
     } finally {
         hideLoader();
     }
@@ -634,22 +656,38 @@ function handleConfigImport(e) {
     reader.onload = (event) => {
         try {
             const newConfig = JSON.parse(event.target.result);
-            config = { ...config, ...newConfig };
+
+            // Validate config structure
+            if (!newConfig.apiUrl || !newConfig.sheetId) {
+                throw new Error('Invalid config file structure');
+            }
+
+            config = { ...newConfig };
             updateSyncStatus('Config imported successfully', 'success');
+
+            // Clear file input
+            e.target.value = '';
+
+            // Reload data with new config
             loadData();
         } catch (error) {
             console.error('Error parsing config:', error);
-            updateSyncStatus('Invalid config file', 'error');
+            updateSyncStatus(`Invalid config: ${error.message}`, 'error');
         }
     };
+
+    reader.onerror = () => {
+        updateSyncStatus('Error reading file', 'error');
+    };
+
     reader.readAsText(file);
 }
 
 // Helper functions
 function formatDate(dateString) {
-  if (!dateString) return '';
-  // Return as-is since we're using DD/MM/YYYY format
-  return dateString;
+    if (!dateString) return '';
+    // Return as-is since we're using DD/MM/YYYY format
+    return dateString;
 }
 
 function showLoader() {
