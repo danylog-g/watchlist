@@ -528,7 +528,7 @@ function saveNewMedia() {
     }
 
     // Convert date to DD/MM/YYYY
-    const dateAdded = dateAddedInput ? toDMY(dateAddedInput) : '';
+    const dateAdded = dateAddedInput ? dateUtils.toDMY(dateAddedInput) : '';
 
     const newItem = {
         id: `new-${Date.now()}`,
