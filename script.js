@@ -136,19 +136,55 @@ async function apiRequest(action, data = null) {
     }
 }
 
-// Refactored data loading
+// data loading
 async function loadData() {
-    updateSyncStatus('Loading data...', 'loading');
-
+    showLoader();
+    updateSyncStatus('Loading Data...', 'loading');
     try {
-        const data = await apiRequest('getAllData');
-        if (!data) return;
+        // Add cache-buster to prevent CORS preflight caching
+        const timestamp = new Date().getTime();
+        const url = `${config.apiUrl}?action=getAllData&_=${timestamp}`;
+
+        console.log('Loading data from:', url);
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'text/plain' // Avoid preflight for simple request
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const text = await response.text();
+        const data = JSON.parse(text);
+        console.log('API response:', data);
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
 
         processData(data);
+        hideLoader();
+        updateSyncStatus('Data loaded successfully', 'success');
         renderTable();
-        updateStatistics();
     } catch (error) {
-        console.error('Data loading error:', error);
+        console.error('Error loading data:', error);
+        hideLoader();
+        updateSyncStatus(`Failed to load data: ${error.message}`, 'error');
+
+        // Fallback to local data if available
+        const localData = localStorage.getItem('watchlistData');
+        if (localData) {
+            try {
+                processData(JSON.parse(localData));
+                renderTable();
+                updateSyncStatus('Using cached data', 'warning');
+            } catch (e) {
+                console.error('Error loading local data:', e);
+            }
+        }
     }
 }
 
@@ -641,8 +677,9 @@ function sortData(column) {
     });
 }
 
-// Refactored data synchronization
+// data synchronization
 async function syncData() {
+    showLoader();
     updateSyncStatus('Syncing data...', 'loading');
 
     try {
@@ -653,9 +690,32 @@ async function syncData() {
             episodes: watchlistData.filter(i => i.type === 'Episode').map(i => i.rawData)
         };
 
-        await apiRequest('updateAllData', payload);
+        // Stringify payload manually to avoid CORS issues
+        const body = `payload=${encodeURIComponent(JSON.stringify(payload))}`;
+
+        const response = await fetch(config.apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: body
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+
+        const result = await response.text();
+        console.log('Sync response:', result);
+
+        // Save successful data locally
+        localStorage.setItem('watchlistData', JSON.stringify(watchlistData));
+        updateSyncStatus('Data synced successfully', 'success');
     } catch (error) {
         console.error('Sync error:', error);
+        updateSyncStatus(`Sync failed: ${error.message}`, 'error');
+    } finally {
+        hideLoader();
     }
 }
 
