@@ -517,7 +517,6 @@ function saveNewMedia() {
     }
 
     watchlistData.push(newItem);
-    watchlistData[itemIndex].rawData['Date Added'] = dateAdded;
     currentDataView = [...watchlistData];
 
     addModal.style.display = 'none';
