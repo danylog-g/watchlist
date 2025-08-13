@@ -111,6 +111,7 @@ async function loadData() {
     processData(data);
     hideLoader();
     updateSyncStatus('Data loaded successfully', 'success');
+    renderTable();
   } catch (error) {
     console.error('Error loading data:', error);
     hideLoader();
