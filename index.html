@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,17 +8,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
+
 <body>
     <div class="container">
         <header>
             <h1>Movie <i class="fas fa-heart heart"></i> Watchlist</h1>
-            <p class="subtitle">Track 
-                <a href="https://letterboxd.com/" target="_blank">Movies</a> 
+            <p class="subtitle">Track
+                <a href="https://letterboxd.com/" target="_blank">Movies</a>
                 and Rate them!
             </p>
             <div id="sync-status" class="status-message"></div>
         </header>
-        
+
         <div class="app-container">
             <section class="list-section">
                 <h2><i class="fas fa-film"></i> Your Watchlist</h2>
@@ -25,12 +27,15 @@
                 <div class="fab" id="add-movie-btn">
                     <i class="fas fa-plus"></i>
                 </div>
-                <div class="fab2" id="import-config-btn" style="bottom: 100px; right: 20px;">
+                <div class="fab2" id="import-config-btn" style="bottom: 100px;">
                     <i class="fas fa-file-import"></i>
+                </div>
+                <div class="fab3" id="export-config-btn" style="bottom: 100px;">
+                    <i class="fas fa-file-export"></i>
                 </div>
 
                 <div class="loader" id="loader"></div>
-                
+
                 <div class="table-container">
                     <div class="filter-bar">
                         <input type="text" id="search-input" placeholder="Search title, director, genre, etc." />
@@ -54,14 +59,14 @@
                             <!-- Table rows will be populated by JavaScript -->
                         </tbody>
                     </table>
-                    
+
                     <div id="empty-state" class="empty-state">
                         <i class="fas fa-film"></i>
                         <h3>Your watchlist is empty</h3>
                         <p>Add movies.</p>
                     </div>
                 </div>
-                
+
                 <div class="stats">
                     <div class="stat-card">
                         <div class="stat-value" id="total-movies">0</div>
@@ -102,25 +107,25 @@
                 <h3 class="modal-title">Rate Movie</h3>
                 <button class="close-modal">&times;</button>
             </div>
-            
+
             <div class="modal-rating">
                 <h4 id="modal-movie-title"></h4>
-                
+
                 <div class="form-group">
                     <label>Date Watched</label>
                     <input type="date" id="date-watched" value="">
                 </div>
-                
+
                 <div class="form-group">
                     <label>Y Rating</label>
                     <div class="rating" id="modal-y-rating"></div>
                 </div>
-                
+
                 <div class="form-group">
                     <label>X Rating</label>
                     <div class="rating" id="modal-x-rating"></div>
                 </div>
-                
+
                 <button id="save-rating-btn"><i class="fas fa-save"></i> Save Rating</button>
             </div>
         </div>
@@ -132,7 +137,7 @@
                 <h3 class="modal-title">Add New Thing</h3>
                 <button class="close-add-modal">&times;</button>
             </div>
-            
+
             <div class="modal-rating">
                 <div class="form-group" id="type-field">
                     <label for="new-media-type">Type</label>
@@ -145,7 +150,7 @@
                 </div>
 
                 <div class="form-group" id="title-field">
-                    <label for="new-name">Title</label><br>
+                    <label for="new-name">Title</label>
                     <input type="text" id="new-name" placeholder="Enter title">
                 </div>
 
@@ -168,38 +173,81 @@
                     <label for="new-year">Year</label>
                     <input type="text" id="new-year" placeholder="Enter year or range">
                 </div>
-                
+
                 <div class="form-group" id="director-field">
-                    <label for="new-director">Director</label><br>
+                    <label for="new-director">Director</label>
                     <input type="text" id="new-director" placeholder="Enter director">
                 </div>
 
                 <div class="form-group" id="genre-field">
-                    <label for="new-genre">Genre (comma separated)</label><br>
+                    <label for="new-genre">Genre (comma separated)</label>
                     <input type="text" id="new-genre" placeholder="Action, Drama, Comedy">
                 </div>
 
                 <div class="form-group" id="duration-field">
-                    <label>Duration (hours):</label>
+                    <label>Duration (hours)</label>
                     <input type="number" step="0.01" id="new-duration" min="0" max="999" value="2">
                 </div>
 
                 <div class="form-group" id="tSeasons-field">
-                    <label>Total Seasons:</label>
+                    <label>Total Seasons</label>
                     <input type="number" step="1" id="new-season-amnt" min="0" max="999" value="1">
                 </div>
 
                 <div class="form-group" id="tEpisodes-field">
-                    <label>Total Episodes:</label>
+                    <label>Total Episodes</label>
                     <input type="number" step="1" id="new-episode-amnt" min="0" max="999" value="1">
                 </div>
-                
+
                 <div class="form-group" id="date-field">
                     <label for="new-date-added">Date Added</label>
                     <input type="date" id="new-date-added" value="">
                 </div>
-                
+
                 <button id="save-new-movie-btn"><i class="fas fa-plus"></i> Add Movie</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="show-details-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="show-details-title">Show Details</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="seasons-container" id="seasons-container">
+                    <!-- Seasons will be populated here -->
+                </div>
+
+                <button id="add-season-btn">
+                    <i class="fas fa-plus"></i> Add Season
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Season modal -->
+    <div class="modal" id="season-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Season</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="season-number">Season Number</label>
+                    <input type="number" id="season-number" min="1" value="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="total-episodes">Total Episodes</label>
+                    <input type="number" id="total-episodes" min="1" value="1">
+                </div>
+
+                <button id="save-season-btn">Save Season</button>
             </div>
         </div>
     </div>
@@ -208,4 +256,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>
